@@ -13,6 +13,7 @@ class Phones(FakeBackend):
         self.attached_now = set(udids)
         self.hang_lock, self.hang_battery = set(), set()
         self.battery_started = asyncio.Event()
+        self.lock_started = asyncio.Event()
 
     async def devices(self):
         return [{"udid": u, "paired": True} for u in self.attached_now]
@@ -22,6 +23,7 @@ class Phones(FakeBackend):
 
     async def lock_state(self, udid):
         if udid in self.hang_lock:
+            self.lock_started.set()
             await asyncio.Event().wait()
         return {"locked": False}
 
@@ -92,6 +94,52 @@ def test_one_blip_per_phone_does_not_become_six_blips_on_one_phone(tmp_path, mon
                 now[0] += 1
             assert not notices
             assert all(len(drops) == 1 for drops in w.drops.values())
+        finally:
+            await b.close()
+    asyncio.run(run())
+
+
+def test_a_hung_reconnect_does_not_delay_a_peer_detach(tmp_path, monkeypatch):
+    b, w, _, _ = rig(tmp_path, monkeypatch)
+    stuck = b.config.resolve("phone3").udid
+    peer = b.config.resolve("phone5").udid
+    b.backend.hang_lock.add(stuck)
+
+    async def run():
+        await w.poll_usb()
+        b.backend.attached_now.remove(stuck)
+        await w.poll_usb()
+        b.backend.attached_now.add(stuck)
+        job = asyncio.create_task(w.run(usb_every=0.01, battery_every=1000))
+        try:
+            await asyncio.wait_for(b.backend.lock_started.wait(), 1)
+            b.backend.attached_now.remove(peer)
+            async def parked():
+                while "usb" not in b.parked("phone5"):
+                    await asyncio.sleep(0.01)
+            await asyncio.wait_for(parked(), 1)
+            assert b.parked("phone3") == {"usb"} and not b.parked("phone6")
+            assert len(w.drops[stuck]) == 1  # retries aren't physical cable flaps
+        finally:
+            job.cancel()
+            await asyncio.gather(job, return_exceptions=True)
+            assert all(task.done() for task in w._rechecks.values())
+            await b.close()
+    asyncio.run(run())
+
+
+def test_usb_and_wake_checks_accept_the_same_phones_normalized_ids(tmp_path, monkeypatch):
+    b, w, _, _ = rig(tmp_path, monkeypatch)
+    b.backend.attached_now = {u.replace("-", "").lower() for u in b.backend.attached_now}
+
+    async def run():
+        try:
+            await w.poll_usb()
+            assert not w.gone
+            w.will_sleep()
+            result = await w.did_wake(0)
+            assert all(r["resumed"] for r in result.values())
+            assert all(not b.parked(a) for a in b.config.devices)
         finally:
             await b.close()
     asyncio.run(run())

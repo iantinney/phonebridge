@@ -221,12 +221,15 @@ def test_stop_releases_the_device_not_just_pauses_it():
 
 def test_park_and_reset_stop_the_capture(backend, tmp_path):
     from phonebridge.bridge import Bridge
+    from phonebridge.config import Device
     from test_bridge import config
 
     async def go():
         await backend.frames("udid")
         dev = backend._avf.device
-        b = Bridge(backend, config([]), log_path=tmp_path / "calls.jsonl")
+        cfg = config([])
+        cfg.devices["iphone12"] = Device("iphone12", "udid", "device:iphone12")
+        b = Bridge(backend, cfg, log_path=tmp_path / "calls.jsonl")
         b.park("usb", "iphone12")
         assert dev.stopped and backend._avf is None
         await backend.frames("udid")  # a new capture after the park, as a new session would

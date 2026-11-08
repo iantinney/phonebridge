@@ -30,7 +30,7 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 
-from ..config import STATE_DIR, site
+from ..config import STATE_DIR, site, udid_key
 
 EVENTS = STATE_DIR / "host" / "events.jsonl"
 PROBE_TIMEOUT_S = 10.0  # bounds a single phone, including the driver's 8 s lockdown-info budget
@@ -60,6 +60,8 @@ class Watch:
         # is the phone's cable physically connected (Type-C CC layer), whatever usbmux says? None: can't tell
         self.plugged, self.dead_after, self.dead_told = plugged or (lambda: None), dead_after, set()
         self._plug_asked: dict[str, float] = {}  # udid -> clock time of the last port query (one per 30 s)
+        self._present: set[str] = set()
+        self._rechecks: dict[str, asyncio.Task] = {}
 
     def _log(self, event: str, **kw) -> None:
         self.events.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -142,31 +144,40 @@ class Watch:
         return r
 
     # --- USB --------------------------------------------------------------------------------
-    async def poll_usb(self) -> None:
+    async def _reattached(self, udid: str, alias: str) -> None:
+        r = await self._recheck(alias)
+        if r["resumed"] and udid in self._present and self.asleep_since is None:
+            self.gone.pop(udid, None)
+            self.bridge.unpark("usb", alias)
+            self.lost.discard(udid)
+
+    async def poll_usb(self, *, wait: bool = True) -> None:
         backend = self.bridge.backend
         listed = await backend.attached() if hasattr(backend, "attached") else [d["udid"] for d in await backend.devices()]
+        keys = {udid_key(u) for u in listed}
+        listed = {u for u in self._phones() if udid_key(u) in keys}
+        previous, self._present = self._present, set(listed)
         now = self.clock()
         for udid, alias in self._phones().items():
             if udid in listed:
                 self.seen.add(udid)
                 if udid in self.gone:
-                    away = now - self.gone.pop(udid)
-                    self.dead_told.discard(udid)
-                    self._log("attach", device=alias, after_s=round(away, 1))
+                    away = now - self.gone[udid]
+                    attached = udid not in previous
+                    if attached:
+                        self.dead_told.discard(udid)
+                        self._log("attach", device=alias, after_s=round(away, 1))
                     # a quick drop: the USB data link failing (15 such blips 19:05-19:20Z on 2026-10-18, the
                     # cable connected throughout; the phone's port had 34 enumeration failures), not a person
-                    if away <= self.lost_after:
+                    if attached and away <= self.lost_after:
                         drops = self.drops[udid] = [t for t in self.drops.get(udid, []) if now - t < 3600] + [now]
                         if len(drops) >= self.flaky and now - self.flap_alerted.get(udid, -1e18) >= 3600:
                             self.flap_alerted[udid] = now
                             self._log("usb_flapping", device=alias, drops_1h=len(drops))
                             self.handoff(f"[host] {alias} dropped off USB {len(drops)} times in the last hour, "
                                          f"back within {self.lost_after:.0f} s each: likely a bad cable or port.")
-                    if (await self._recheck(alias))["resumed"]:
-                        self.bridge.unpark("usb", alias)
-                        self.lost.discard(udid)
-                    else:
-                        self.gone[udid] = now
+                    if udid not in self._rechecks or self._rechecks[udid].done():
+                        self._rechecks[udid] = asyncio.create_task(self._reattached(udid, alias))
             elif udid not in self.gone:
                 self.gone[udid] = now
                 self.bridge.park("usb", alias)
@@ -182,6 +193,8 @@ class Watch:
                 # two look the same here, so this is logged for diagnosis, never paged.
                 self.dead_told.add(udid)
                 self._log("usb_gone_cable_in", device=alias, away_s=round(now - self.gone[udid]))
+            if udid not in self._present and (pending := self._rechecks.pop(udid, None)):
+                pending.cancel()  # a stale successful check must never unpark a phone that left again
             gone = self.gone.get(udid)
             if gone is not None and now - gone > self.lost_after and udid not in self.lost and udid in self.seen:
                 self.lost.add(udid)
@@ -189,6 +202,8 @@ class Watch:
                 self._log("device_lost", device=alias, away_s=round(now - gone), task=bool(task))
                 if task:  # unplugged (Ian using it) or the link died: the task backs out; no page for either
                     self.bridge.end_task(alias, "device_lost")
+        if wait:
+            await asyncio.gather(*self._rechecks.values())
 
     def _ask_plugged(self, udid: str, now: float) -> bool:
         self._plug_asked[udid] = now
@@ -239,7 +254,7 @@ class Watch:
                 await asyncio.sleep(usb_every)
                 await self.tick()
                 with contextlib.suppress(Exception):
-                    await self.poll_usb()
+                    await self.poll_usb(wait=False)
                 if self.clock() >= next_battery:
                     next_battery = self.clock() + battery_every
                     for udid in self._phones():
@@ -247,9 +262,10 @@ class Watch:
                                 and (udid not in readings or readings[udid].done())):
                             readings[udid] = asyncio.create_task(battery(udid))
         finally:
-            for task in readings.values():
+            pending = [*readings.values(), *self._rechecks.values()]
+            for task in pending:
                 task.cancel()
-            await asyncio.gather(*readings.values(), return_exceptions=True)
+            await asyncio.gather(*pending, return_exceptions=True)
 
     async def _woke(self) -> None:
         if self.asleep_since is not None:

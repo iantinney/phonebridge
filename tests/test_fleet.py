@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 import io
 import json
 import math
+import os
 import subprocess
 import sys
 import threading
@@ -299,7 +300,9 @@ def test_device_alias_cannot_switch_physical_phones_until_restart(tmp_path):
     path.write_text(original)
     b = Bridge(FakeBackend(), config_path=path, log_path=tmp_path / "calls.jsonl")
     assert b.config.resolve("phone").udid.endswith("1")
+    before = path.stat()
     path.write_text(original.replace("0000000000000001", "0000000000000002"))
+    os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))  # editors/filesystems may preserve timestamps
     for _ in range(2):
         with pytest.raises(ValueError, match="restart the bridge"):
             _ = b.config

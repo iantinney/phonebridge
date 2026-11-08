@@ -44,7 +44,7 @@ from typing import Callable, Protocol
 from urllib.parse import urlsplit
 
 from . import ocr as vision
-from .config import CONFIG_PATH, DATA_DIR, STATE_DIR, Config
+from .config import CONFIG_PATH, DATA_DIR, STATE_DIR, Config, read_config, udid_key
 from .host.power import TaskPower
 from .humanize import Humanizer, Key, PathPoint
 from .lease import LeaseError, Leases, holder_id
@@ -175,7 +175,7 @@ class Bridge:
                  recognise: Callable[[str, bytes], str | None] | None = None, task_poll: float = 20.0,
                  controller_idle: float = 300.0):
         self.backend = backend
-        self._config, self._path, self._mtime = config or Config(), None if config else config_path, None
+        self._config, self._path, self._config_text = config or Config(), None if config else config_path, None
         self._loaded_config = config is not None
         self.leases = Leases(self._config.lease_cmd)
         self.human = Humanizer(self._config.humanize)
@@ -219,10 +219,9 @@ class Bridge:
     def config(self) -> Config:
         """Reload pacing/policy; changes to device routing, leases or driver settings require a restart."""
         if self._path is not None:
-            stat = self._path.stat() if self._path.exists() else None
-            mtime = (stat.st_mtime_ns, stat.st_size, stat.st_ino) if stat else None
-            if mtime != self._mtime:
-                new = Config.load(self._path)
+            text = read_config(self._path)  # same-size edits can share a filesystem timestamp; compare actual bytes
+            if text != self._config_text:
+                new = Config.from_text(text, self._path) if text is not None else Config()
                 fixed = ("devices", "lease_cmd", "lease_enforce", "input", "eyes", "tunnel", "pointer_surface")
                 if self._loaded_config and any(getattr(new, k) != getattr(self._config, k) for k in fixed):
                     raise ValueError("device routing, lease or driver settings changed; restart the bridge before continuing")
@@ -234,7 +233,7 @@ class Bridge:
                     self.human = Humanizer(new.humanize)
                     self._humans.clear()
                 self._config = new
-                self._mtime, self._loaded_config = mtime, True
+                self._config_text, self._loaded_config = text, True
         return self._config
 
     def _human(self, udid: str) -> Humanizer:
@@ -975,9 +974,10 @@ class Bridge:
                 found = [info] if info else []
             else:
                 found = await self.backend.devices()
-        found = {x["udid"]: x for x in found}
-        out = {"usb": d.udid in found}
-        out["trusted"] = out["usb"] and bool(found[d.udid].get("paired", "error" not in found[d.udid]))
+        found = {udid_key(x["udid"]): x for x in found}
+        info = found.get(udid_key(d.udid))
+        out = {"usb": info is not None}
+        out["trusted"] = out["usb"] and bool(info.get("paired", "error" not in info))
         if out["trusted"]:
             with contextlib.suppress(Exception):
                 out["locked"] = (await self.backend.lock_state(d.udid)).get("locked")

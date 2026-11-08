@@ -15,6 +15,5 @@ timeline, not a reconstruction of public commits.
 | November 8, 2026 | Standalone packaging and the first public alpha; fresh Mac install and an unchanged imported workflow operated a real iPhone. | [Native result, input receipt and workflow](demo/taught-profile-check/); [initial public export](https://github.com/iantinney/phonebridge/commit/159da456). |
 | November 8, 2026 | Seven-device configuration, isolation and concurrent software validation. | [Multi-iPhone design and validation](multi-iphone.md), tests and accurately dated public commits. |
 
-The earliest Phonebridge source commit located for this timeline is October 18. This timeline
-does not establish a year of development or backdate newly written code. The public export
-and subsequent changes retain their actual commit dates.
+The earliest Phonebridge source commit located for this timeline is October 18, 2026.
+The public export preserves that earlier work; subsequent commits record the new changes.
