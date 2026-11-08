@@ -11,7 +11,7 @@ import time
 from pathlib import Path
 
 from .bridge import Bridge
-from .config import CONFIG_DIR, CONFIG_PATH, STATE_DIR, Config
+from .config import CONFIG_DIR, CONFIG_PATH, STATE_DIR, Config, ConfigError
 
 TOKEN_FILE = Path(os.environ.get("PHONEBRIDGE_TOKEN_FILE", CONFIG_DIR / "phonebridge.token")).expanduser()
 
@@ -94,10 +94,18 @@ def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(prog="phonebridge", description=__doc__)
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("devices")
-    s = sub.add_parser("setup", help="configure one connected phone with a local exclusive lease; never overwrite existing config")
-    s.add_argument("--device", help="UDID, required when several phones are connected")
-    s.add_argument("--alias", default="phone")
-    s.add_argument("--out", type=Path, default=CONFIG_PATH)
+    s = sub.add_parser("setup", help="add connected phones to the config, each with a local exclusive lease; "
+                                     "what is already in the file is never changed")
+    which = s.add_mutually_exclusive_group()
+    which.add_argument("--device", help="UDID of the phone to add, when several new phones are connected")
+    which.add_argument("--all", action="store_true", help="add every connected phone that isn't configured yet")
+    s.add_argument("--alias", help="the phone's name (default: phone, phone-2, phone-3, ...)")
+    s.add_argument("--multi-phone", nargs="?", const="stream", choices=["stream", "dvt"],
+                   help='needed for a second phone: add tunnel = "tunneld" and eyes = "stream" (or dvt: stills only) '
+                        "where the file sets neither; never rewrites a value that is there")
+    s.add_argument("--check", action="store_true",
+                   help="validate the config against the connected phones and tunneld; exit 1 if anything is wrong")
+    s.add_argument("--out", "--config", dest="out", type=Path, default=CONFIG_PATH, help="the config file")
     for name in ("screen", "ocr", "lock", "pair"):
         s = sub.add_parser(name)
         s.add_argument("device")
@@ -164,7 +172,18 @@ def main(argv: list[str] | None = None) -> None:
         understand.serve(port=a.port, idle_s=a.idle, model_id=a.model or understand.MODEL, preload=a.preload)
         return
 
-    b = make_bridge()
+    if a.cmd == "setup":  # no bridge: setup is how a broken or unsafe config gets repaired
+        from .setup import run as setup_run
+
+        r = setup_run(a)
+        json.dump(r, sys.stdout, indent=2, ensure_ascii=False)
+        print()
+        raise SystemExit(0 if r.get("ok", True) else 1)
+
+    try:
+        b = make_bridge()
+    except ConfigError as e:
+        raise SystemExit(str(e))
     if a.cmd == "serve":
         from .mcp_server import build
 
@@ -195,14 +214,6 @@ def main(argv: list[str] | None = None) -> None:
         try:
             match a.cmd:
                 case "devices": return await b.devices()
-                case "setup":
-                    from .setup import configure
-                    try:
-                        return configure(await b.devices(), a.out, device=a.device, alias=a.alias)
-                    except FileExistsError:
-                        raise SystemExit("Config already exists; keeping it intact. Use --out PATH for a separate setup.")
-                    except ValueError as exc:
-                        raise SystemExit(str(exc))
                 case "screen":
                     Path(a.out).write_bytes(await b.screen(a.device))
                     return a.out

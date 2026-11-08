@@ -1,0 +1,54 @@
+# Seven iPhones on one Mac and one phonebridge server. You don't normally need to copy this: with the phones plugged in,
+# unlocked and trusted,
+#
+#   uv run phonebridge devices                  # every phone on USB and its UDID
+#   uv run phonebridge setup --all --multi-phone
+#   sudo uv run pymobiledevice3 remote tunneld  # leave it running
+#   uv run phonebridge setup --check            # what is still wrong, phone by phone
+#
+# writes this same shape to ~/.config/phonebridge/phonebridge.toml, adds to any config already there without changing
+# it, and names phones by sorted UDID, so plug order doesn't matter. Add one more later with `phonebridge setup`.
+#
+# Seven is the target this was written for, not a limit in the code, and not a measured capacity: several phones at once
+# have not been exercised on real hardware for this release. All settings: phonebridge.example.toml.
+
+# Both are required for two or more phones. The in-process tunnel carries one phone per server, and "avf" (and "auto"
+# on macOS) is one capture per Mac that isn't tied to a phone. "dvt" (stills only) also works for eyes.
+tunnel = "tunneld"
+eyes = "stream"
+
+# One alias per phone. Each holds its own lease, device:<alias>, so one controller at a time per phone.
+[devices.phone]
+udid = "00008101-XXXXXXXXXXXXXXX1"
+supervision = "read-only"
+
+[devices.phone-2]
+udid = "00008101-XXXXXXXXXXXXXXX2"
+supervision = "read-only"
+
+[devices.phone-3]
+udid = "00008101-XXXXXXXXXXXXXXX3"
+supervision = "read-only"
+
+[devices.phone-4]
+udid = "00008101-XXXXXXXXXXXXXXX4"
+supervision = "read-only"
+
+[devices.phone-5]
+udid = "00008101-XXXXXXXXXXXXXXX5"
+supervision = "read-only"
+
+[devices.phone-6]
+udid = "00008101-XXXXXXXXXXXXXXX6"
+supervision = "read-only"
+
+[devices.phone-7]
+udid = "00008101-XXXXXXXXXXXXXXX7"
+supervision = "read-only"
+
+[lease]
+cmd = ["phonebridge-local-lease"]
+enforce = true
+
+[policy]
+urls = ["https://*"]

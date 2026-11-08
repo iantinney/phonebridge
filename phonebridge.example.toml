@@ -18,6 +18,8 @@ input = "pmd3"
 # tunnel), "tunneld" (only: `sudo pymobiledevice3 remote tunneld` serves it on 127.0.0.1:49151),
 # "userspace" (only; no root).
 # tunnel = "auto"
+# Two or more phones need tunnel = "tunneld" and eyes = "stream" or "dvt": `phonebridge setup --multi-phone` adds them
+# (phonebridge.seven-phones.example.toml).
 
 # CoreDevice registers a Mouse-usage HID surface (1281) for the Mac; iOS's GameController counts it as a connected
 # mouse, so web pages read (any-hover: hover) and (any-pointer: fine) as true and apps can see a mouse. "remove"
