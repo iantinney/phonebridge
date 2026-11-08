@@ -27,7 +27,7 @@ class FakeDevice:
         self.stopped = True
 
 
-async def fake_open(push, name="iPhone", wait_s=10.0):
+async def fake_open(push, udid, wait_s=10.0):
     if FakeDevice.fail:
         raise RuntimeError("no iPhone screen device")
     return FakeDevice(push)
@@ -41,7 +41,7 @@ def reset():
 def test_capture_pushes_the_device_frames_into_frames_latest():
     async def go():
         frames = stream.Frames()
-        cap = avf.AvfCapture(frames, opener=fake_open)
+        cap = avf.AvfCapture(frames, "udid", opener=fake_open)
         dev = await cap.start()
         dev.feed(2)
         f = frames.latest()
@@ -64,6 +64,10 @@ def backend(monkeypatch):
     monkeypatch.setattr(pmd3, "DvtProvider", FakeCtx)
     monkeypatch.setattr(pmd3, "Screenshot", FakeCtx)
     monkeypatch.setattr(avf, "open_capture", fake_open)
+
+    async def alone(self):
+        return ["udid"]
+    monkeypatch.setattr(pmd3.Pmd3Backend, "attached", alone)
     return pmd3.Pmd3Backend(idle=60, eyes="avf")
 
 
@@ -227,6 +231,10 @@ def test_park_and_reset_stop_the_capture(backend, tmp_path):
         assert dev.stopped and backend._avf is None
         await backend.frames("udid")  # a new capture after the park, as a new session would
         dev2 = backend._avf.device
+
+        async def gone():
+            return []
+        backend.attached = gone  # the phone left USB
         await backend._reset(backend._phone("udid"))
         assert dev2.stopped and backend._avf is None
     asyncio.run(go())
@@ -273,9 +281,9 @@ def test_the_capture_vouches_only_while_its_session_runs_and_the_device_is_conne
             self.stopped = True
     h = Handle()
 
-    async def opener(push, name, wait_s):
+    async def opener(push, udid, wait_s):
         return h
-    cap = avf.AvfCapture(stream.Frames(), opener=opener)
+    cap = avf.AvfCapture(stream.Frames(), "udid", opener=opener)
 
     async def go():
         await cap.start()

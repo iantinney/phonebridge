@@ -10,6 +10,9 @@ stays as the second track and DVT stills as the fallback.
 Device discovery needs the main thread's run loop (a worker thread never sees the phone), so `open_capture`
 pumps it in short slices between `await`s and runs on the daemon's main thread. While a capture runs the phone's
 `UIScreen.isCaptured` is true, as with QuickTime (PLAN E26): the backend keeps it up only while something looks.
+
+Every iPhone is named "iPhone" here, so a capture is bound to the UDID it was opened for (`bound_device`) and there is
+no other way to pick a device: a phone that can't be bound has no capture and looks through its display stream.
 """
 
 from __future__ import annotations
@@ -25,7 +28,7 @@ from .stream import Frames
 log = logging.getLogger(__name__)
 
 Push = Callable[[bytes, int, int], None]
-Opener = Callable[..., Awaitable[object]]  # open_capture(push, name=..., wait_s=...) -> handle with .stop()
+Opener = Callable[..., Awaitable[object]]  # open_capture(push, udid=..., wait_s=...) -> handle with .stop()
 
 
 def enable_screen_capture_devices() -> int:
@@ -129,22 +132,33 @@ async def _pump(seconds: float) -> None:
     await asyncio.sleep(0)
 
 
-async def _find_device(name: str, wait_s: float):
+def udid_key(udid: str) -> str:
+    """A UDID for comparing: usbmux and RSD write 00008101-001919082EBA001E; other APIs may drop the hyphen or the case."""
+    return str(udid).replace("-", "").casefold()
+
+
+def bound_device(devices, udid: str, muxed: str):
+    """The screen device of exactly this phone (AVCaptureDevice.uniqueID is its UDID), else None: never a guess by name."""
+    found = [d for d in devices if d.hasMediaType_(muxed) and udid_key(d.uniqueID()) == udid_key(udid)]
+    return found[0] if len(found) == 1 else None
+
+
+async def _find_device(udid: str, wait_s: float):
     import AVFoundation as AV
 
     types = [t for t in (getattr(AV, "AVCaptureDeviceTypeExternal", None),
                          getattr(AV, "AVCaptureDeviceTypeExternalUnknown", None)) if t]
     deadline = time.monotonic() + wait_s
+    seen = []
     while time.monotonic() < deadline:
         await _pump(0.1)
         s = AV.AVCaptureDeviceDiscoverySession.discoverySessionWithDeviceTypes_mediaType_position_(
             types, None, AV.AVCaptureDevicePositionUnspecified)
-        for d in s.devices():
-            if d.hasMediaType_(AV.AVMediaTypeMuxed) and (name.lower() in str(d.localizedName()).lower()
-                                                         or str(d.modelID()) == "iOS Device"):
-                return d
-    raise RuntimeError(f"no iPhone screen device ({name!r}) within {wait_s:.0f} s: phone on USB, unlocked and trusted, "
-                       "and the daemon's Python has Camera + Microphone access?")
+        if (d := bound_device(s.devices(), udid, AV.AVMediaTypeMuxed)) is not None:
+            return d
+        seen = [str(d.uniqueID()) for d in s.devices()]
+    raise RuntimeError(f"no screen device bound to {udid} within {wait_s:.0f} s (uniqueIDs seen: {seen}): phone on USB, "
+                       "unlocked and trusted, and the daemon's Python has Camera + Microphone access?")
 
 
 _DELEGATE_CLASS = None
@@ -175,8 +189,8 @@ def _delegate_class():
     return _DELEGATE_CLASS
 
 
-async def open_capture(push: Push, name: str = "iPhone", wait_s: float = 10.0) -> _Device:
-    """macOS: start capturing the phone's screen; every frame reaches `push(bgra, width, height)` from the
+async def open_capture(push: Push, udid: str, wait_s: float = 10.0) -> _Device:
+    """macOS: start capturing this phone's screen; every frame reaches `push(bgra, width, height)` from the
     capture's dispatch queue. Call from the main thread (the daemon's event loop)."""
     import objc
     import AVFoundation as AV
@@ -185,7 +199,7 @@ async def open_capture(push: Push, name: str = "iPhone", wait_s: float = 10.0) -
     import Quartz
 
     enable_screen_capture_devices()
-    dev = await _find_device(name, wait_s)
+    dev = await _find_device(udid, wait_s)
     session = AV.AVCaptureSession.alloc().init()
     inp, err = AV.AVCaptureDeviceInput.deviceInputWithDevice_error_(dev, None)
     if inp is None:
@@ -257,16 +271,16 @@ async def open_capture(push: Push, name: str = "iPhone", wait_s: float = 10.0) -
 
 
 class AvfCapture:
-    """`await AvfCapture(frames).start()`: the phone's screen flows into `frames` until `stop()`."""
+    """`await AvfCapture(frames, udid).start()`: that phone's screen flows into `frames` until `stop()`."""
 
-    def __init__(self, frames: Frames, name: str = "iPhone", opener: Opener | None = None, wait_s: float = 10.0):
-        self.frames, self.name, self.wait_s = frames, name, wait_s
+    def __init__(self, frames: Frames, udid: str, opener: Opener | None = None, wait_s: float = 10.0):
+        self.frames, self.udid, self.wait_s = frames, udid, wait_s
         self._opener = opener or open_capture
         self.device = None
         self.started_at: float | None = None
 
     async def start(self):
-        self.device = await self._opener(self.frames.push, name=self.name, wait_s=self.wait_s)
+        self.device = await self._opener(self.frames.push, udid=self.udid, wait_s=self.wait_s)
         self.started_at = time.monotonic()
         self.frames.alive = self.alive
         self._pump = asyncio.ensure_future(pump_run_loop(lambda: self.running))

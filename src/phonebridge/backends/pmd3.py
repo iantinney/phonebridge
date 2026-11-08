@@ -2,7 +2,8 @@
 (touch: iOS 27+).
 
 Per phone it keeps one RSD (from a running `pymobiledevice3 remote tunneld` if there is one, else
-an in-process userspace tunnel — no root, but one phone per process), and one `ScreenStream`
+an in-process userspace tunnel — no root, but it must be the only phone in the process, so several phones need
+tunneld: `_claim_route`), and one `ScreenStream`
 session (`stream.py`) while input or fast looks are flowing: the display stream that opens
 backboardd's HID gate, decoded into `frames()`. The session shows the phone's screen-capture
 indicator and blocks in-app camera/mic, so it closes after `idle` seconds without input or looks.
@@ -10,8 +11,9 @@ indicator and blocks in-app camera/mic, so it closes after `idle` seconds withou
 
 The eyes (`eyes=`): "avf" = the phone's screen through AVFoundation (`avf.py`, the QuickTime path, ~58 fps,
 no tunnel, the Mac's GUI session; default on macOS), "stream" = the CoreDevice display stream decoded in-process
-(`stream.py`; also what the HID gate runs on); "auto" picks avf on macOS. A capture that fails to open falls
-back to the stream's frames, and `screen()` to a DVT still. The capture runs only while something looks
+(`stream.py`; also what the HID gate runs on); "auto" picks avf on macOS. AVFoundation serves one phone per Mac, bound
+to its UDID: with another phone on USB, or none that binds, the phone looks through its own stream. A capture that
+fails to open falls back to the stream's frames, and `screen()` to a DVT still. The capture runs only while something looks
 (PLAN E26: the phone's UIScreen.isCaptured is true meanwhile, as with QuickTime) and stops after `idle` s.
 """
 
@@ -29,7 +31,12 @@ import time
 
 from PIL import Image
 from pymobiledevice3 import usbmux
-from pymobiledevice3.exceptions import AlreadyMountedError, CoreDeviceError, TunneldConnectionError
+from pymobiledevice3.exceptions import (
+    AlreadyMountedError,
+    ConnectionTerminatedError,
+    CoreDeviceError,
+    TunneldConnectionError,
+)
 from pymobiledevice3.lockdown import create_using_usbmux
 from pymobiledevice3.remote.core_device.app_service import AppServiceService
 from pymobiledevice3.remote.core_device.device_info import DeviceInfoService
@@ -45,7 +52,9 @@ from pymobiledevice3.remote.core_device.hid_service import (
     IndigoHIDService,
 )
 from pymobiledevice3.remote.core_device.pasteboard_service import PasteboardService
+from pymobiledevice3.remote.remote_service_discovery import RemoteServiceDiscoveryService
 from pymobiledevice3.remote.xpc_message import XpcInt64Type, XpcUInt64Type
+from pymobiledevice3.remote import userspace_tunnel
 from pymobiledevice3.remote.userspace_tunnel import UserspaceRsdTunnel
 from pymobiledevice3.services.diagnostics import DiagnosticsService
 from pymobiledevice3.services.installation_proxy import InstallationProxyService
@@ -53,7 +62,7 @@ from pymobiledevice3.services.dvt.instruments.device_info import DeviceInfo
 from pymobiledevice3.services.dvt.instruments.dvt_provider import DvtProvider
 from pymobiledevice3.services.dvt.instruments.screenshot import Screenshot
 from pymobiledevice3.services.mobile_image_mounter import auto_mount
-from pymobiledevice3.tunneld.api import get_tunneld_device_by_udid
+from pymobiledevice3.tunneld.api import get_tunneld_tunnels
 
 from ..humanize import Key, PathPoint
 from .. import avf, presence
@@ -169,6 +178,9 @@ SHIFT_LEAD = 0.03  # s Shift is down before a shifted key (measured 2026-10-18: 
 PRESS_LAG = 0.008  # s: a tap read ~8 ms shorter than its plan on the iPhone 12 (measure, 2026-10-18); added back
 HOME = (0x0C, 0x40)
 TUNNEL_CHECK_S = 0.5  # a call re-checks tunneld's listing at most this often (a local HTTP GET, ~ms)
+RSD_CONNECT_S = 15.0  # one tunnel's RSD handshake
+DEVICE_INFO_S = 8.0  # one phone's lockdown answer while listing devices: a wedged phone is listed with the reason
+AVF_RETRY_S = 300.0  # a phone whose capture couldn't open or bind looks through its stream this long before trying again
 FG_TIMEOUT_S = 4.0  # the frontmost-app query: ~0.26 s on iOS 27.0.1, 0.4-2.3 s (one 5 s) on iOS 27.2 (live 11-08); a dead DVT channel hangs it longer
 SPRINGBOARD = "com.apple.springboard"  # "frontmost" on the home and lock screens
 # Always "foregroundRunning" beside the app (measured, iPhone 12 / iOS 27.0.1, 2026-10-18 18:5xZ): SpringBoard,
@@ -242,6 +254,25 @@ def needs_ddi(peer_info: dict) -> bool:
     return any(s not in have for s in (DvtProvider.RSD_SERVICE_NAME, *DDI_SERVICES))
 
 
+async def tunneld_rsd(udid: str):
+    """The phone's RSD through tunneld; None when tunneld doesn't list it. pymobiledevice3's get_tunneld_device_by_udid
+    does the same with a blocking requests.get on the event loop (up to 5 s on a wedged tunneld, every phone waiting).
+    A listed phone whose tunnels don't answer raises: tunneld is its route, so that is no reason to try another."""
+    entries = (await get_tunneld_tunnels()).get(udid)
+    if not entries:
+        return None
+    for t in entries:
+        rsd = RemoteServiceDiscoveryService((t["tunnel-address"], t["tunnel-port"]), name=t["interface"],
+                                            auxiliary_metadata=t.get("auxiliary-metadata"))
+        try:
+            await asyncio.wait_for(rsd.connect(), RSD_CONNECT_S)
+            return rsd
+        except (TimeoutError, ConnectionError, ConnectionTerminatedError):
+            with contextlib.suppress(Exception):
+                await asyncio.wait_for(rsd.close(), 3)
+    raise ConnectionError(f"tunneld lists {udid} but none of its tunnels answered")
+
+
 class Pmd3Backend:
     def __init__(self, idle: float = 45.0, fresh: float = 0.5, eyes: str = "auto", tunnel: str = "auto",
                  pointer_surface: str = "keep"):
@@ -260,25 +291,51 @@ class Pmd3Backend:
         self.fresh = fresh  # s: a live frame older than this means a stalled source; screen() takes a DVT still instead
         self.eyes = ("avf" if sys.platform == "darwin" else "stream") if eyes == "auto" else eyes  # avf | stream | dvt
         self._phones: dict[str, _Phone] = {}
-        self._avf: avf.AvfCapture | None = None  # one capture per Mac (the phone on USB), while looks keep coming
+        self._routes: dict[str, str] = {}  # udid -> "tunneld" | "userspace", for every RSD open or opening (_claim_route)
+        self._avf: avf.AvfCapture | None = None  # one capture per Mac, of the phone it was opened for, while looks keep coming
         self._avf_timer: asyncio.TimerHandle | None = None
         self._avf_lock = asyncio.Lock()
+        self._avf_retry_at = 0.0  # monotonic: no new capture before this (the last one couldn't open or bind)
 
     # --- sessions ---------------------------------------------------------------------------
     def _phone(self, udid: str) -> _Phone:
         return self._phones.setdefault(udid, _Phone(udid))
 
+    def _claim_route(self, udid: str, route: str) -> None:
+        """Check and record a phone's tunnel with no await between, so phones opening at once can't both pass. pymobiledevice3
+        allows one userspace tunnel per process, and while it is up open_media_receiver puts EVERY phone's RTP receiver on
+        its stack: a userspace phone shares this process with no other phone, and routes are never mixed."""
+        others = {u: r for u, r in self._routes.items() if u != udid}
+        if (route == "userspace" and others) or "userspace" in others.values() or (route == "tunneld" and userspace_tunnel.USERSPACE_ACTIVE):
+            raise RuntimeError(f"{udid} needs a {route} route but the userspace tunnel can't share a process "
+                               f"(open: {others or 'a userspace tunnel'}): several phones need tunneld; zero input sent")
+        self._routes[udid] = route
+
     async def _open_rsd(self, p: _Phone):
-        """The phone's RSD: through tunneld (a kernel utun) or an in-process userspace tunnel (no root). On iOS 27.2
+        """The phone's RSD by its route, refused unless the far end says it is this phone; a failure gives the route back."""
+        p.stack = contextlib.AsyncExitStack()
+        try:
+            rsd = await self._route(p)
+            if avf.udid_key(rsd.udid) != avf.udid_key(p.udid):
+                raise RuntimeError(f"the tunnel for {p.udid} reached {rsd.udid}: refused, zero input sent")
+            return rsd
+        except BaseException:
+            self._routes.pop(p.udid, None)
+            with contextlib.suppress(Exception):
+                await asyncio.wait_for(p.stack.aclose(), 5)
+            raise
+
+    async def _route(self, p: _Phone):
+        """Through tunneld (a kernel utun) or an in-process userspace tunnel (no root). On iOS 27.2
         (2026-11-08) taps and the display stream both arrived over the userspace tunnel ("transport UserspaceUdp"),
         with the system tunneld also running; on 2026-10-18 the stream's RTP never arrived over it, and a Mac with no
         tunneld at all is unchecked. `tunnel` = auto tries tunneld first; tunneld refuses to fall back, so a test of it
         is a test of it."""
-        p.stack = contextlib.AsyncExitStack()
-        rsd = None
         if self.tunnel in ("auto", "tunneld"):
+            self._claim_route(p.udid, "tunneld")
+            rsd = None
             with contextlib.suppress(TunneldConnectionError):
-                rsd = await get_tunneld_device_by_udid(p.udid)
+                rsd = await tunneld_rsd(p.udid)
             if rsd is not None:
                 p.stack.push_async_callback(rsd.close)
                 p.rsd_addr, p.tunnel_checked = await self._tunnel_addr(p.udid), time.monotonic()
@@ -286,6 +343,7 @@ class Pmd3Backend:
                 return rsd
             if self.tunnel == "tunneld":
                 raise RuntimeError(f"tunnel=tunneld but tunneld (127.0.0.1:49151) does not list {p.udid}: on USB? tunneld running?")
+        self._claim_route(p.udid, "userspace")
         log.warning("rsd for %s via the in-process userspace tunnel", p.udid)
         return await p.stack.enter_async_context(UserspaceRsdTunnel(serial=p.udid, autopair=False))  # no Trust prompt
 
@@ -382,7 +440,7 @@ class Pmd3Backend:
         if p is not None and p.session is not None and p.idle_timer is not None:
             p.idle_timer.cancel()
             p.idle_timer = loop.call_later(self.idle, lambda: asyncio.ensure_future(self._close_session(p)))
-        if self._avf is not None and self._avf_timer is not None:
+        if self._avf is not None and self._avf.udid == udid and self._avf_timer is not None:
             self._avf_timer.cancel()
             self._avf_timer = loop.call_later(self.idle, self._stop_avf)
 
@@ -405,12 +463,25 @@ class Pmd3Backend:
             return False
 
     # --- the eyes: AVFoundation capture first, the stream's frames second ---------------------------------
-    async def _avf_frames(self) -> Frames:
+    async def _avf_allowed(self, udid: str) -> bool:
+        """The capture is for the only phone on this Mac; another on USB ends it, and every phone uses its own stream."""
+        if any(u != udid for u in await asyncio.wait_for(self.attached(), 2)):
+            self.stop_eyes("another phone is on USB")
+            return False
+        return time.monotonic() >= self._avf_retry_at
+
+    async def _avf_frames(self, udid: str) -> Frames:
         async with self._avf_lock:
+            if self._avf is not None and self._avf.udid != udid:
+                self.stop_eyes("another phone looks")
             if self._avf is None:
-                before = {u: await self._tunnel_addr(u) for u in self._phones} if self.tunnel in ("auto", "tunneld") else {}
-                cap = avf.AvfCapture(Frames())
-                await cap.start()
+                before = {udid: await self._tunnel_addr(udid)} if udid in self._phones and self.tunnel in ("auto", "tunneld") else {}
+                cap = avf.AvfCapture(Frames(), udid)
+                try:
+                    await cap.start()
+                except Exception:
+                    self._avf_retry_at = time.monotonic() + AVF_RETRY_S  # not 10 s of discovery on every look
+                    raise
                 self._avf = cap
                 if before:
                     self._rewarm_task = asyncio.ensure_future(self._rewarm_after_capture(before))
@@ -422,9 +493,12 @@ class Pmd3Backend:
     def _stop_avf(self) -> None:
         self.stop_eyes("idle")
 
-    def stop_eyes(self, reason: str = "requested") -> None:
+    def stop_eyes(self, reason: str = "requested", udid: str | None = None) -> None:
         """End the screen capture now (idle, park, USB loss, shutdown): the phone's isCaptured and the Mac's
-        capture indicator go off with it. Idempotent, never raises, always logged."""
+        capture indicator go off with it. With `udid`, only if the capture is that phone's. Idempotent, never raises,
+        always logged."""
+        if udid is not None and (self._avf is None or self._avf.udid != udid):
+            return
         if self._avf_timer:
             self._avf_timer.cancel()
             self._avf_timer = None
@@ -438,7 +512,7 @@ class Pmd3Backend:
 
     def _live(self, p: _Phone):
         """The newest live frame from whichever source runs: the capture, else the stream session."""
-        if self._avf is not None and (f := self._avf.frames.latest()):
+        if self._avf is not None and self._avf.udid == p.udid and (f := self._avf.frames.latest()):
             return f
         if p.session is not None:
             return p.session.frames.latest()
@@ -466,7 +540,7 @@ class Pmd3Backend:
         # no capture outlives its phone: stop it when the phone left USB. A failed call with the phone still
         # attached keeps it: restarting the capture would re-enumerate USB and recreate the tunnel once more
         if not keep_eyes and not await self._still_attached(p.udid):
-            self.stop_eyes("reset: the phone left USB")
+            self.stop_eyes("reset: the phone left USB", p.udid)
         await self._reset_dvt(p)
         await self._drop_session(p)
         if p.stack:
@@ -474,6 +548,7 @@ class Pmd3Backend:
                 await asyncio.wait_for(p.stack.aclose(), 5)
         p.stack = p.rsd = p.dvt = p.dvt_shot = p.dvt_info = p.buttons = None
         p.rsd_addr = None
+        self._routes.pop(p.udid, None)
 
     async def _run(self, udid: str, fn, retry: bool, narrow=None):
         """Run fn(phone) under the phone's lock; on failure drop the session (the phone may have been
@@ -488,7 +563,7 @@ class Pmd3Backend:
                 return await fn(p)
             except Exception as e:
                 scope = "dvt" if (retry and narrow) else "all"
-                self._recovered(fn, e, t, scope)
+                self._recovered(fn, e, t, scope, p.udid)
                 await (narrow(p) if scope == "dvt" else self._reset(p))
                 if not retry:
                     raise
@@ -496,41 +571,53 @@ class Pmd3Backend:
             try:
                 return await fn(p)
             except Exception as e:
-                self._recovered(fn, e, t, "all")
+                self._recovered(fn, e, t, "all", p.udid)
                 await self._reset(p)  # the next call starts clean too, not on what just failed
                 raise
 
-    def _recovered(self, fn, e: BaseException, t: float, scope: str) -> None:
+    def _recovered(self, fn, e: BaseException, t: float, scope: str, udid: str) -> None:
         self._recovery_seq += 1
-        self.recoveries.append({"n": self._recovery_seq, "call": getattr(fn, "__name__", "?"), "error": f"{type(e).__name__}: {e}"[:120],
+        self.recoveries.append({"n": self._recovery_seq, "udid": udid, "call": getattr(fn, "__name__", "?"), "error": f"{type(e).__name__}: {e}"[:120],
                                 "after_ms": round((time.monotonic() - t) * 1000), "reset": scope})
         log.warning("backend %s failed after %.0f ms (%s): reset %s", getattr(fn, "__name__", "?"),
                     (time.monotonic() - t) * 1000, type(e).__name__, scope)
 
     async def close(self) -> None:
         self.stop_eyes("shutdown")
-        for p in self._phones.values():
-            await self._reset(p)
+        await asyncio.gather(*(self._reset(p) for p in list(self._phones.values())), return_exceptions=True)  # each is bounded
 
     # --- eyes -------------------------------------------------------------------------------
+    async def _lockdown_info(self, d) -> dict:
+        async with await create_using_usbmux(d.serial, autopair=False, connection_type=d.connection_type) as ld:
+            i = ld.short_info
+            dev = {"udid": d.serial, "name": i.get("DeviceName"), "ios": i.get("ProductVersion"),
+                   "product": i.get("ProductType"), "model": ld.display_name, "paired": ld.paired}
+            if ld.paired:
+                dev["developer_mode"] = await ld.get_developer_mode_status()
+            else:
+                dev["hint"] = "unlock the phone and tap Trust (phonebridge pair <device>)"
+            return dev
+
+    async def _entry(self, udid: str, info) -> dict:
+        """One phone's listing, bounded; one that can't answer (locked after boot, wedged) is listed with the reason."""
+        try:
+            return await asyncio.wait_for(info, DEVICE_INFO_S)
+        except Exception as e:
+            return {"udid": udid, "error": f"{type(e).__name__}: {e}"}
+
     async def devices(self) -> list[dict]:
-        out = []
-        for d in await usbmux.list_devices():
-            if not d.is_usb:
-                continue
-            try:
-                async with await create_using_usbmux(d.serial, autopair=False, connection_type=d.connection_type) as ld:
-                    i = ld.short_info
-                    dev = {"udid": d.serial, "name": i.get("DeviceName"), "ios": i.get("ProductVersion"),
-                           "product": i.get("ProductType"), "model": ld.display_name, "paired": ld.paired}
-                    if ld.paired:
-                        dev["developer_mode"] = await ld.get_developer_mode_status()
-                    else:
-                        dev["hint"] = "unlock the phone and tap Trust (phonebridge pair <device>)"
-                    out.append(dev)
-            except Exception as e:  # e.g. locked after boot: still listed, with the reason
-                out.append({"udid": d.serial, "error": f"{type(e).__name__}: {e}"})
-        return out
+        found = await asyncio.wait_for(usbmux.list_devices(), DEVICE_INFO_S)
+        return list(await asyncio.gather(*(self._entry(d.serial, self._lockdown_info(d)) for d in found if d.is_usb)))
+
+    async def device_info(self, udid: str) -> dict:
+        """This phone's devices() entry without waiting on any other phone; a phone not on USB is an error entry under
+        its own UDID, never another phone's."""
+        async def find():
+            for d in await usbmux.list_devices():
+                if d.is_usb and d.serial == udid:
+                    return await self._lockdown_info(d)
+            raise LookupError("not on USB")
+        return await self._entry(udid, find())
 
     async def pair(self, udid: str, timeout: float = 120) -> None:
         """Ask the phone to trust this Mac (shows "Trust This Computer?"; the operator taps Trust)."""
@@ -587,7 +674,8 @@ class Pmd3Backend:
             raise RuntimeError("eyes=dvt: live frames are switched off on this host")
         if self.eyes == "avf":
             try:
-                return await self._avf_frames()
+                if await self._avf_allowed(udid):
+                    return await self._avf_frames(udid)
             except Exception as e:
                 log.warning("avf capture unavailable (%s: %s): falling back to the stream's frames", type(e).__name__, e)
 
@@ -808,22 +896,18 @@ class Pmd3Backend:
         await self._run(udid, paste, retry=False)
 
     async def home(self, udid: str) -> None:
-        """One Home press. The button connection is cached and the phone may have closed it (2026-10-19 07:09Z:
-        ConnectionTerminatedError after 90 s idle), so a failure retries once on a fresh connection: the whole
-        press if the down never reached the phone, only the release if it did (a second press after a delivered
-        down could read as a long press: Siri)."""
-        down_sent = False
-
+        """One Home press, never repeated: a failed send may still have reached the phone. Its own connection each time
+        (a cached one the phone had closed failed the first press after 90 s idle, 2026-10-19 07:09Z); a press that went
+        down always comes up, as a finger does."""
         async def home(p):
-            nonlocal down_sent
-            b = await self._service(p, "buttons", IndigoHIDService)
-            if not down_sent:
+            async with IndigoHIDService(await self._rsd(p)) as b:
                 await b.send_button(*HOME, HID_BUTTON_STATE_DOWN)
-                down_sent = True
-                await asyncio.sleep(0.05)
-            await b.send_button(*HOME, HID_BUTTON_STATE_UP)
-            await asyncio.sleep(0.1)
-        await self._run(udid, home, retry=True)
+                try:
+                    await asyncio.sleep(0.05)
+                finally:
+                    await asyncio.shield(b.send_button(*HOME, HID_BUTTON_STATE_UP))
+                await asyncio.sleep(0.1)
+        await self._run(udid, home, retry=False)
 
     async def launch(self, udid: str, bundle_id: str, url: str | None = None) -> None:
         """Bring an app to the front; with `url`, hand it that URL (devicectl's --payload-url)."""

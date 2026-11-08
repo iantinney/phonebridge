@@ -167,6 +167,8 @@ def test_tunnel_tunneld_uses_tunneld_and_never_falls_back(monkeypatch):
     calls = []
 
     class Rsd:
+        udid = "U12"
+
         async def close(self):
             pass
 
@@ -177,7 +179,7 @@ def test_tunnel_tunneld_uses_tunneld_and_never_falls_back(monkeypatch):
     class Userspace:
         def __init__(self, **kw):
             calls.append(("userspace",))
-    monkeypatch.setattr(pmd3, "get_tunneld_device_by_udid", tunneld)
+    monkeypatch.setattr(pmd3, "tunneld_rsd", tunneld)
     monkeypatch.setattr(pmd3, "UserspaceRsdTunnel", Userspace)
     be = pmd3.Pmd3Backend(tunnel="tunneld")
     rsd = asyncio.run(be._open_rsd(be._phone("U12")))
@@ -185,7 +187,7 @@ def test_tunnel_tunneld_uses_tunneld_and_never_falls_back(monkeypatch):
 
     async def none(udid):
         return None
-    monkeypatch.setattr(pmd3, "get_tunneld_device_by_udid", none)
+    monkeypatch.setattr(pmd3, "tunneld_rsd", none)
     with pytest.raises(RuntimeError, match="tunneld"):
         asyncio.run(be._open_rsd(be._phone("U13")))
     assert ("userspace",) not in calls
@@ -194,7 +196,7 @@ def test_tunnel_tunneld_uses_tunneld_and_never_falls_back(monkeypatch):
 def test_tunnel_userspace_skips_tunneld(monkeypatch):
     async def tunneld(udid):
         raise AssertionError("tunneld must not be asked")
-    monkeypatch.setattr(pmd3, "get_tunneld_device_by_udid", tunneld)
+    monkeypatch.setattr(pmd3, "tunneld_rsd", tunneld)
     be = pmd3.Pmd3Backend(tunnel="userspace")
     assert be.tunnel == "userspace"
     with pytest.raises(ValueError):
@@ -254,7 +256,7 @@ def test_pointer_surface_remove_asks_dtuhidd_and_reports_whether_it_is_gone():
         pmd3.Pmd3Backend(pointer_surface="hide")
 
 
-# --- a dead cached connection: home retries once, taps never (orchestrator, 2026-10-19 07:09Z) ----------------------
+# --- a failed send may have reached the phone: no input is ever sent twice ------------------------------------------
 
 
 class Conn:
@@ -262,6 +264,12 @@ class Conn:
 
     def __init__(self, log, fail_at=None):
         self.log, self.fail_at, self.n = log, fail_at, 0
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
 
     async def send_button(self, *args):
         self.n += 1
@@ -277,36 +285,50 @@ def pmd3_exc():
 
 @pytest.fixture
 def conns(monkeypatch):
-    state = {"log": [], "conns": [], "resets": 0}
+    state = {"log": [], "conns": [], "opened": 0, "resets": 0}
 
-    async def fake_service(self, p, attr, cls):
-        return state["conns"][min(state["resets"], len(state["conns"]) - 1)]
+    def service(rsd):
+        state["opened"] += 1
+        return state["conns"][state["opened"] - 1]
+
+    async def fake_rsd(self, p):
+        return object()
 
     async def fake_reset(self, p):
         state["resets"] += 1
-    monkeypatch.setattr(pmd3.Pmd3Backend, "_service", fake_service)
+    monkeypatch.setattr(pmd3, "IndigoHIDService", service)
+    monkeypatch.setattr(pmd3.Pmd3Backend, "_rsd", fake_rsd)
     monkeypatch.setattr(pmd3.Pmd3Backend, "_reset", fake_reset)
     return state
 
 
-def test_home_on_a_dead_connection_presses_once_on_a_fresh_one(conns):
+DOWN_UP = [("button", pmd3.HID_BUTTON_STATE_DOWN), ("button", pmd3.HID_BUTTON_STATE_UP)]
+
+
+def test_each_home_press_has_its_own_connection(conns):
+    conns["conns"] = [Conn(conns["log"]), Conn(conns["log"])]
+
+    async def go():
+        be = pmd3.Pmd3Backend()
+        await be.home("udid")
+        await be.home("udid")
+    asyncio.run(go())
+    assert conns["opened"] == 2 and conns["resets"] == 0 and conns["log"] == DOWN_UP * 2
+
+
+def test_a_home_press_whose_down_failed_is_never_repeated(conns):
+    """The failed send may have reached the phone: a second press could be a double press."""
     conns["conns"] = [Conn(conns["log"], fail_at=1), Conn(conns["log"])]
-    asyncio.run(pmd3.Pmd3Backend().home("udid"))
-    assert conns["resets"] == 1
-    assert conns["log"] == [("button", pmd3.HID_BUTTON_STATE_DOWN), ("button", pmd3.HID_BUTTON_STATE_UP)]
-
-
-def test_home_whose_release_failed_only_releases_on_retry(conns):
-    conns["conns"] = [Conn(conns["log"], fail_at=2), Conn(conns["log"])]
-    asyncio.run(pmd3.Pmd3Backend().home("udid"))
-    assert conns["log"] == [("button", pmd3.HID_BUTTON_STATE_DOWN), ("button", pmd3.HID_BUTTON_STATE_UP)]  # no second press
-
-
-def test_home_gives_up_after_one_retry(conns):
-    conns["conns"] = [Conn(conns["log"], fail_at=1), Conn(conns["log"], fail_at=1)]
     with pytest.raises(pmd3_exc().ConnectionTerminatedError):
         asyncio.run(pmd3.Pmd3Backend().home("udid"))
-    assert conns["resets"] == 2 and conns["log"] == []
+    assert conns["opened"] == 1 and conns["resets"] == 1 and conns["log"] == []
+
+
+def test_a_home_press_whose_release_failed_is_never_repeated(conns):
+    conns["conns"] = [Conn(conns["log"], fail_at=2), Conn(conns["log"])]
+    with pytest.raises(pmd3_exc().ConnectionTerminatedError):
+        asyncio.run(pmd3.Pmd3Backend().home("udid"))
+    assert conns["opened"] == 1 and conns["log"] == DOWN_UP[:1]
 
 
 def test_a_tap_on_a_dead_connection_is_never_retried(monkeypatch):
@@ -391,7 +413,7 @@ def test_a_recreated_tunnel_is_noticed_before_a_call_and_reconnects_keeping_the_
     p = be._phone("udid")
     p.rsd, p.rsd_addr, p.stack = object(), "fd64::1", contextlib.AsyncExitStack()
     stopped, seen = [], []
-    monkeypatch.setattr(be, "stop_eyes", lambda reason="": stopped.append(reason))
+    monkeypatch.setattr(be, "stop_eyes", lambda reason="", udid=None: stopped.append(reason))
 
     async def addr(udid):
         return "fd70::1"  # tunneld made a new tunnel
@@ -408,7 +430,7 @@ def test_a_recreated_tunnel_is_noticed_before_a_call_and_reconnects_keeping_the_
 def test_a_failed_call_keeps_the_capture_while_the_phone_is_on_usb_and_stops_it_when_it_left(monkeypatch):
     be = pmd3.Pmd3Backend()
     stopped = []
-    monkeypatch.setattr(be, "stop_eyes", lambda reason="": stopped.append(reason))
+    monkeypatch.setattr(be, "stop_eyes", lambda reason="", udid=None: stopped.append(reason))
     on_usb = {"udid"}
 
     async def attached():
@@ -486,7 +508,7 @@ def test_keep_warm_restarts_the_idle_timers_without_opening_anything(monkeypatch
         p = be._phone("udid")
         p.session = object()
         p.idle_timer = loop.call_later(0.2, lambda: closed.append("first"))
-        be._avf = object()
+        be._avf = __import__("types").SimpleNamespace(udid="udid")
         be._avf_timer = loop.call_later(0.2, lambda: stopped.append("first"))
         await asyncio.sleep(0.12)
         be.keep_warm("udid")
