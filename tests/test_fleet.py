@@ -119,7 +119,13 @@ def test_same_phone_inputs_serialize_checks_and_gestures(tmp_path, monkeypatch):
         await entered.wait()
         second = asyncio.create_task(b.home("phone1", caller="agent1"))
         try:
-            await asyncio.sleep(0)  # second call reaches the bridge while first is held
+            async def queued():
+                while True:
+                    lock = b._inputs.get(b.config.resolve("phone1").udid)
+                    if lock and lock._waiters and len(lock._waiters) == 1:
+                        return
+                    await asyncio.sleep(0)
+            await asyncio.wait_for(queued(), 2)  # prove the second call reached the busy phone
             assert active == 1
             release.set()
             await asyncio.gather(first, second)
@@ -195,6 +201,10 @@ def test_each_phone_has_independent_bounded_gestures(tmp_path, monkeypatch):
             other.keystrokes("example")
     actual = [b._human(b.config.resolve("phone1").udid).tap(500, 800, 44, 20) for _ in range(10)]
     assert actual == expected
+    b._humans.clear()
+    starts = [tuple(b._human(d.udid).tap(500, 800, 44, 20) for _ in range(10))
+              for d in b.config.devices.values()]
+    assert len(set(starts)) == 7  # independent seeds, not seven copies of the same sequence
     assert all(abs(x - 500) <= 0.4 * 44 and abs(y - 800) <= 0.4 * 20 and 0.04 <= p <= 0.25
                for x, y, p in actual)
     assert len(set(actual)) > 1
@@ -210,3 +220,28 @@ def test_changed_driver_settings_keep_refusing_until_restart(tmp_path):
         with pytest.raises(ValueError, match="restart the bridge"):
             _ = b.config
     assert b.backend.calls == []
+
+
+def test_config_edit_after_delivery_does_not_turn_a_tap_into_a_failure(tmp_path):
+    path = tmp_path / "phonebridge.toml"
+    udid = "00008101-0000000000000001"
+    path.write_text(f'[devices.phone]\nudid = "{udid}"\n[lease]\nenforce = false\n')
+    b = Bridge(FakeBackend(), config_path=path, log_path=tmp_path / "calls.jsonl")
+    b.op_watch = False
+
+    async def tap(target, x, y, press):
+        b.backend.calls.append(("tap", target))
+        path.write_text("[devices.phone\n")  # an unrelated editor writes invalid TOML during delivery
+    b.backend.tap = tap
+
+    async def run():
+        b._awake[udid] = time.monotonic()
+        try:
+            await b.tap("phone", 10, 20, think=False)
+            assert b.backend.calls == [("tap", udid)]
+            with pytest.raises(ValueError):
+                await b.tap("phone", 30, 40)
+            assert len(b.backend.calls) == 1
+        finally:
+            await b.close()  # cleanup also uses the identity acquired before the edit
+    asyncio.run(run())

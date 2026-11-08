@@ -33,6 +33,7 @@ from pathlib import Path
 from ..config import STATE_DIR, site
 
 EVENTS = STATE_DIR / "host" / "events.jsonl"
+PROBE_TIMEOUT_S = 10.0  # bounds a single phone, including the driver's 8 s lockdown-info budget
 
 
 class Watch:
@@ -53,7 +54,9 @@ class Watch:
         self.seen: set[str] = set()  # udids seen on USB since this daemon started (a never-plugged phone isn't lost)
         self.readings: dict[str, dict] = {}  # udid -> last battery reading
         self.on_sleep: list[Callable[[], object]] = []  # e.g. the heartbeat's "sleeping" beat
-        self.flaky, self.drops, self.flap_alerted = flaky, [], -1e18  # quick USB drops (clock times)
+        self.flaky = flaky
+        self.drops: dict[str, list[float]] = {}  # quick USB drops, per physical phone
+        self.flap_alerted: dict[str, float] = {}
         # is the phone's cable physically connected (Type-C CC layer), whatever usbmux says? None: can't tell
         self.plugged, self.dead_after, self.dead_told = plugged or (lambda: None), dead_after, set()
         self._plug_asked: dict[str, float] = {}  # udid -> clock time of the last port query (one per 30 s)
@@ -98,9 +101,15 @@ class Watch:
             slept = self.wall() - self.asleep_since if self.asleep_since is not None else 0.0
         self._log("did_wake", slept_s=round(slept))
         out, found = {}, None
-        with contextlib.suppress(Exception):
-            found = await self.bridge.backend.devices()  # one USB listing for every phone
-        for udid, alias in self._phones().items():
+        if not hasattr(self.bridge.backend, "device_info"):
+            with contextlib.suppress(Exception):
+                found = await asyncio.wait_for(self.bridge.backend.devices(), PROBE_TIMEOUT_S)
+        phones = self._phones()
+        for alias in phones.values():
+            self.bridge.park("wake", alias)
+        self.bridge.unpark("sleep")  # each phone now resumes only after its own bounded check
+
+        async def check(udid, alias):
             r = out[alias] = await self._recheck(alias, found)
             if not r["resumed"] and udid not in self.gone:
                 self.gone[udid] = self.clock()  # T counts from the wake
@@ -108,6 +117,8 @@ class Watch:
             if slept > self.stale_after and udid in self.bridge.tasks:
                 self.bridge.end_task(alias, "stale")
                 self._log("task_stale", device=alias, slept_s=round(slept))
+            self.bridge.unpark("wake", alias)
+        await asyncio.gather(*(check(udid, alias) for udid, alias in phones.items()))
         self.asleep_since = None
         self._gap = self.gap()  # this sleep is handled: the clock-gap fallback must not see it again
         self.bridge.unpark("sleep")
@@ -123,7 +134,7 @@ class Watch:
 
     async def _recheck(self, alias: str, found: list[dict] | None = None) -> dict:
         try:
-            r = await self.bridge.recheck(alias, found)
+            r = await asyncio.wait_for(self.bridge.recheck(alias, found), PROBE_TIMEOUT_S)
         except Exception as e:
             r = {"usb": False, "error": f"{type(e).__name__}: {e}"}
         r["resumed"] = bool(r.get("usb") and r.get("trusted"))
@@ -145,11 +156,11 @@ class Watch:
                     # a quick drop: the USB data link failing (15 such blips 19:05-19:20Z on 2026-10-18, the
                     # cable connected throughout; the phone's port had 34 enumeration failures), not a person
                     if away <= self.lost_after:
-                        self.drops = [t for t in self.drops if now - t < 3600] + [now]
-                        if len(self.drops) >= self.flaky and now - self.flap_alerted >= 3600:
-                            self.flap_alerted = now
-                            self._log("usb_flapping", device=alias, drops_1h=len(self.drops))
-                            self.handoff(f"[host] {alias} dropped off USB {len(self.drops)} times in the last hour, "
+                        drops = self.drops[udid] = [t for t in self.drops.get(udid, []) if now - t < 3600] + [now]
+                        if len(drops) >= self.flaky and now - self.flap_alerted.get(udid, -1e18) >= 3600:
+                            self.flap_alerted[udid] = now
+                            self._log("usb_flapping", device=alias, drops_1h=len(drops))
+                            self.handoff(f"[host] {alias} dropped off USB {len(drops)} times in the last hour, "
                                          f"back within {self.lost_after:.0f} s each: likely a bad cable or port.")
                     if (await self._recheck(alias))["resumed"]:
                         self.bridge.unpark("usb", alias)
@@ -215,18 +226,30 @@ class Watch:
         if sys.platform == "darwin":
             with contextlib.suppress(Exception):  # the gap fallback still catches wakes
                 power_events(loop, self._iokit_will_sleep, lambda: asyncio.run_coroutine_threadsafe(self._woke(), loop))
-        next_battery = 0.0
-        while True:
-            await asyncio.sleep(usb_every)
-            await self.tick()
+        async def battery(udid):
+            # A wedged diagnostic service must not suspend USB-loss detection for the whole fleet.
             with contextlib.suppress(Exception):
-                await self.poll_usb()
-            if self.clock() >= next_battery:
-                next_battery = self.clock() + battery_every
-                for udid in self._phones():
-                    if udid not in self.gone and hasattr(self.bridge.backend, "battery"):
-                        with contextlib.suppress(Exception):
-                            self.battery(udid, await self.bridge.backend.battery(udid))
+                reading = await asyncio.wait_for(self.bridge.backend.battery(udid), PROBE_TIMEOUT_S)
+                if udid not in self.gone:
+                    self.battery(udid, reading)
+
+        next_battery, readings = 0.0, {}
+        try:
+            while True:
+                await asyncio.sleep(usb_every)
+                await self.tick()
+                with contextlib.suppress(Exception):
+                    await self.poll_usb()
+                if self.clock() >= next_battery:
+                    next_battery = self.clock() + battery_every
+                    for udid in self._phones():
+                        if (udid not in self.gone and hasattr(self.bridge.backend, "battery")
+                                and (udid not in readings or readings[udid].done())):
+                            readings[udid] = asyncio.create_task(battery(udid))
+        finally:
+            for task in readings.values():
+                task.cancel()
+            await asyncio.gather(*readings.values(), return_exceptions=True)
 
     async def _woke(self) -> None:
         if self.asleep_since is not None:

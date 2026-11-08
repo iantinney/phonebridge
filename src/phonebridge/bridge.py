@@ -219,7 +219,8 @@ class Bridge:
     def config(self) -> Config:
         """The config file, re-read whenever it changes (a long-running server picks up new aliases)."""
         if self._path is not None:
-            mtime = self._path.stat().st_mtime if self._path.exists() else None
+            stat = self._path.stat() if self._path.exists() else None
+            mtime = (stat.st_mtime_ns, stat.st_size, stat.st_ino) if stat else None
             if mtime != self._mtime:
                 new = Config.load(self._path)
                 driver_settings = ("input", "eyes", "tunnel", "pointer_surface")
@@ -262,7 +263,8 @@ class Bridge:
 
     async def reserve(self, device: str, owner: str) -> None:
         """Reserve a physical UDID, shared by all daemon/CLI processes using this state root."""
-        udid = self.config.resolve(device).udid
+        dev = self.config.resolve(device)
+        udid = dev.udid
         if held := self._reservations.get(udid):
             if held["owner"] != owner or held["closing"]:
                 raise LeaseError(f"busy: controller {held['owner']} reserved {device}")
@@ -278,10 +280,14 @@ class Bridge:
         idle = asyncio.Event()
         idle.set()
         self._reservations[udid] = dict(owner=owner, handle=handle, active=0, idle=idle,
-                                        closing=False, timer=None)
+                                        closing=False, timer=None, device=dev)
 
     async def release_reservation(self, device: str, owner: str) -> None:
         udid = self.config.resolve(device).udid
+        await self._release_reservation(udid, owner)
+
+    async def _release_reservation(self, udid: str, owner: str) -> None:
+        """Release the identity acquired earlier, even if the config changed while an input was in flight."""
         held = self._reservations.get(udid)
         if held is None:
             return
@@ -298,6 +304,7 @@ class Bridge:
 
     @asynccontextmanager
     async def controller(self, device: str, owner: str, check=None):
+        udid = self.config.resolve(device).udid
         await self.reserve(device, owner)
         token, guard = CONTROLLER.set(owner), INPUT_CHECK.set(check)
         try:
@@ -305,15 +312,16 @@ class Bridge:
         finally:
             INPUT_CHECK.reset(guard)
             CONTROLLER.reset(token)
-            await self.release_reservation(device, owner)
+            await self._release_reservation(udid, owner)
 
     @asynccontextmanager
     async def _hold(self, device: str, caller: str, lease: str | None = None):
         owner = CONTROLLER.get() or caller
-        if (self.config.resolve(device).udid, owner) in self._lost_controllers:
+        dev = self.config.resolve(device)
+        if (dev.udid, owner) in self._lost_controllers:
             raise LeaseError("controller reservation expired; begin a new controller session and re-observe")
         await self.reserve(device, owner)
-        held = self._reservations[self.config.resolve(device).udid]
+        held = self._reservations[dev.udid]
         if held["timer"]:
             held["timer"].cancel()
         held["active"] += 1
@@ -321,7 +329,7 @@ class Bridge:
         try:
             if check := INPUT_CHECK.get():
                 check()
-            udid = self.config.resolve(device).udid
+            udid = dev.udid
             async with self._inputs.setdefault(udid, asyncio.Lock()):
                 async with self._leased(device, owner, lease) as udid:
                     yield udid
@@ -334,9 +342,9 @@ class Bridge:
                     held["timer"].cancel()
                 # Renewal cannot keep an abandoned explicit controller forever. TaskAPI
                 # contexts own their lifetime; raw inputs get a bounded idle interval.
-                expiry = self.leases._expires.get((lease, self.config.resolve(device).lease), 0)
-                if (lease and expiry <= time.monotonic()) or (not lease and not self.leases.holds(self.config.resolve(device).lease)):
-                    await self.release_reservation(device, owner)
+                expiry = self.leases._expires.get((lease, dev.lease), 0)
+                if (lease and expiry <= time.monotonic()) or (not lease and not self.leases.holds(dev.lease)):
+                    await self._release_reservation(dev.udid, owner)
                 else:
                     held["idle_until"] = time.monotonic() + self.controller_idle
                     delay = min(max(0, expiry - time.monotonic()), self.controller_idle) if lease else self.lease_idle
@@ -344,7 +352,7 @@ class Bridge:
                         lambda: asyncio.create_task(self._expire_controller(device, owner, held, lease)))
 
     async def _expire_controller(self, device, owner, held, lease):
-        dev = self.config.resolve(device)
+        dev = held["device"]
         if self._reservations.get(dev.udid) is held:
             if lease:
                 left = min(self.leases._expires.get((lease, dev.lease), 0),
@@ -354,7 +362,7 @@ class Bridge:
                         lambda: asyncio.create_task(self._expire_controller(device, owner, held, lease)))
                     return
                 self._lost_controllers.add((dev.udid, owner))
-            await self.release_reservation(device, owner)
+            await self._release_reservation(dev.udid, owner)
 
     @asynccontextmanager
     async def _leased(self, device: str, caller: str, lease: str | None = None):
@@ -805,6 +813,7 @@ class Bridge:
     async def _act(self, op: str, device: str, caller: str, lease: str | None, swipe=None, lock_guard=False, think=True, **log):
         """One input call: log it, hold the device lock (the task), refuse while parked, check for the operator
         (and the lock screen), wait the think time with the frontmost-app check at its end, act."""
+        target_udid = self.config.resolve(device).udid
         async with self._timed(op, device, backend=type(self.backend).__name__, **log) as rec:
             mark, t = self._recovery_mark(), time.perf_counter()
             t_act = t
@@ -837,7 +846,7 @@ class Bridge:
                     finally:
                         self._acted(udid)
             finally:
-                if got := self._recoveries_since(mark, self.config.resolve(device).udid):
+                if got := self._recoveries_since(mark, target_udid):
                     rec["recoveries"] = got  # a backend call failed inside this input and was reset/retried
 
     def _fresh_enough(self, device: str, rec: dict, t_act: float, mark: int) -> None:
@@ -960,7 +969,13 @@ class Bridge:
         the foreground rule enforce the last two on the next input; this records them. `found`: a devices()
         listing already taken."""
         d = self.config.resolve(device)
-        found = {x["udid"]: x for x in (found if found is not None else await self.backend.devices())}
+        if found is None:
+            if probe := getattr(self.backend, "device_info", None):
+                info = await probe(d.udid)
+                found = [info] if info else []
+            else:
+                found = await self.backend.devices()
+        found = {x["udid"]: x for x in found}
         out = {"usb": d.udid in found}
         out["trusted"] = out["usb"] and bool(found[d.udid].get("paired", "error" not in found[d.udid]))
         if out["trusted"]:
@@ -1230,4 +1245,4 @@ class Bridge:
         await asyncio.to_thread(self.leases.release_all)
         await self.backend.close()
         for udid, held in list(self._reservations.items()):
-            await self.release_reservation(udid, held["owner"])
+            await self._release_reservation(udid, held["owner"])
