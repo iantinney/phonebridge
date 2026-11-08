@@ -94,7 +94,8 @@ uv run phonebridge setup       # writes ~/.config/phonebridge/phonebridge.toml f
 
 With several phones connected, pass `--device <UDID>`; `--alias` names the phone. Setup can add devices to an existing
 config while preserving its other settings. For the multi-phone path, use `setup --all --multi-phone stream` and
-restart the bridge ([full setup](docs/multi-iphone.md)). The config it writes:
+restart the bridge ([full setup](docs/multi-iphone.md)). Restart after any config edit, including policy and pacing.
+The config it writes:
 
 - marks the phone `read-only` (reported to agents as advice; Phonebridge can't tell a Post tap from any other tap);
 - turns on the local lease: every input holds `device:<alias>` through `phonebridge-local-lease`, so only one

@@ -1,6 +1,7 @@
 """Fleet regressions from independent review: a faulty phone must not disable the host watchdog."""
 
 import asyncio
+import pytest
 
 from phonebridge.host.watch import Watch
 from test_bridge import FakeBackend
@@ -141,5 +142,63 @@ def test_usb_and_wake_checks_accept_the_same_phones_normalized_ids(tmp_path, mon
             assert all(r["resumed"] for r in result.values())
             assert all(not b.parked(a) for a in b.config.devices)
         finally:
+            await b.close()
+    asyncio.run(run())
+
+
+def test_healthy_phones_resume_while_the_stuck_phone_keeps_its_wake_hold(tmp_path, monkeypatch):
+    b, w, _, _ = rig(tmp_path, monkeypatch)
+    b.backend.hang_lock.add(b.config.resolve("phone3").udid)
+    monkeypatch.setattr("phonebridge.host.watch.PROBE_TIMEOUT_S", 5)
+
+    async def run():
+        w.will_sleep()
+        job = asyncio.create_task(w.did_wake(0))
+        try:
+            await asyncio.wait_for(b.backend.lock_started.wait(), 1)
+            async def peers_ready():
+                while any(b.parked(a) for a in b.config.devices if a != "phone3"):
+                    await asyncio.sleep(0)
+            await asyncio.wait_for(peers_ready(), 1)  # before the stuck phone's timeout
+            assert b.parked("phone3") == {"wake"}
+        finally:
+            job.cancel()
+            await asyncio.gather(job, return_exceptions=True)
+            await b.close()
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("interruption", ["detach", "sleep"])
+def test_an_old_reconnect_check_cannot_unpark_after_detach_or_sleep(tmp_path, monkeypatch, interruption):
+    b, w, _, _ = rig(tmp_path, monkeypatch)
+    udid = b.config.resolve("phone3").udid
+
+    async def run():
+        entered, release = asyncio.Event(), asyncio.Event()
+        async def lock_state(target):
+            if target == udid:
+                entered.set()
+                await release.wait()
+            return {"locked": False}
+        b.backend.lock_state = lock_state
+        await w.poll_usb()
+        b.backend.attached_now.remove(udid)
+        await w.poll_usb()
+        b.backend.attached_now.add(udid)
+        await w.poll_usb(wait=False)
+        job = w._rechecks[udid]
+        try:
+            await asyncio.wait_for(entered.wait(), 1)
+            if interruption == "detach":
+                b.backend.attached_now.remove(udid)
+                await w.poll_usb(wait=False)
+            else:
+                w.will_sleep()
+            release.set()
+            await asyncio.gather(job, return_exceptions=True)
+            assert "usb" in b.parked("phone3")
+        finally:
+            job.cancel()
+            await asyncio.gather(job, return_exceptions=True)
             await b.close()
     asyncio.run(run())

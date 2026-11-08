@@ -217,7 +217,7 @@ class Bridge:
 
     @property
     def config(self) -> Config:
-        """Reload pacing/policy; changes to device routing, leases or driver settings require a restart."""
+        """For config_path callers, reload pacing/policy only. An explicit Config (serve) stays fixed until restart."""
         if self._path is not None:
             text = read_config(self._path)  # same-size edits can share a filesystem timestamp; compare actual bytes
             if text != self._config_text:

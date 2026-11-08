@@ -45,8 +45,9 @@ uv run phonebridge setup --check
 uv run phonebridge serve --http
 ```
 
-The server listens on Mac loopback at `http://127.0.0.1:8934/mcp`. Restart it after changing
-devices, lease, transport or capture settings. Multiple phones use `tunnel = "tunneld"` and `eyes = "stream"`
+The server listens on Mac loopback at `http://127.0.0.1:8934/mcp`. Restart it after **any config
+change**, including URL policy or pacing: the served daemon keeps its startup configuration.
+Multiple phones use `tunnel = "tunneld"` and `eyes = "stream"`
 (or `"dvt"` for still screenshots). The no-root in-process userspace tunnel is a single-phone
 option; it cannot safely share its process with another phone's tunnel.
 
@@ -125,6 +126,19 @@ The [seven-phone example config](../phonebridge.seven-phones.example.toml) shows
 
 The [native proof](demo/taught-profile-check/) records an imported workflow operating one
 real iPhone. It is separate evidence from these multi-device software tests.
+
+### Recovery limits
+
+Repeated failed reconnect checks leave a phone parked. After the configured `lost_after`
+interval (30 seconds by default), its current task ends as `device_lost`, even if USB still
+lists the phone. A stalled HID send can retain that phone's controller while peers continue;
+cancelling cannot prove that an already sent gesture was not delivered.
+
+Active screen streams have separate UDP ports. A failed stream shutdown followed by another
+phone reusing the same port before the old stream times out could admit stale packets; that
+path has not been tested on hardware. The upstream kernel receiver binds all interfaces and
+this receiver does not filter incoming SSRCs. This release does not claim complete isolation
+under that shutdown-and-port-reuse failure.
 
 ## Design sources
 
