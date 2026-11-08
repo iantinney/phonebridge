@@ -35,14 +35,14 @@ SUPERVISION = ("auto", "hold-outward", "read-only")
 CHOICES = {"input": ("pmd3", "bthid"), "eyes": ("auto", "avf", "stream", "dvt"),
            "tunnel": ("auto", "tunneld", "userspace"), "pointer_surface": ("keep", "remove")}
 # Two or more phones on one server. The in-process tunnel carries one phone per process, and AVF stays single-phone: one
-# capture per Mac, so with several phones a look at one could return another's screen.
+# identity-bound capture per Mac; fleets use device-specific streams or stills instead.
 MULTI_PHONE_TUNNEL = "tunneld"
 MULTI_PHONE_EYES = ("stream", "dvt")
 
 
 def udid_key(udid: str) -> str:
     """One phone's identity however its UDID is spelled; the driver compares UDIDs the same way."""
-    return udid.replace("-", "").casefold()
+    return str(udid).replace("-", "").casefold()
 
 
 class ConfigError(ValueError):
@@ -185,8 +185,7 @@ class Config:
         env = os.environ.get("PHONEBRIDGE_EYES")
         if (env or self.eyes) not in MULTI_PHONE_EYES:
             out.append(f'{"PHONEBRIDGE_EYES" if env else "eyes"} = "{env or self.eyes}" with {n} phones: use '
-                       f'{" or ".join(MULTI_PHONE_EYES)} (avf, and auto on macOS, is one capture per Mac, so a look at '
-                       f"one phone could return another's screen); {adds}")
+                       f'{" or ".join(MULTI_PHONE_EYES)} (AVFoundation is restricted to one attached phone); {adds}')
         if not (self.lease_cmd and self.lease_enforce):
             out.append(f'{n} phones without an enforced lease: under [lease] set cmd = ["phonebridge-local-lease"] and '
                        "enforce = true")

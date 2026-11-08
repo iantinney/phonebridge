@@ -217,15 +217,15 @@ class Bridge:
 
     @property
     def config(self) -> Config:
-        """The config file, re-read whenever it changes (a long-running server picks up new aliases)."""
+        """Reload pacing/policy; changes to device routing, leases or driver settings require a restart."""
         if self._path is not None:
             stat = self._path.stat() if self._path.exists() else None
             mtime = (stat.st_mtime_ns, stat.st_size, stat.st_ino) if stat else None
             if mtime != self._mtime:
                 new = Config.load(self._path)
-                driver_settings = ("input", "eyes", "tunnel", "pointer_surface")
-                if self._loaded_config and any(getattr(new, k) != getattr(self._config, k) for k in driver_settings):
-                    raise ValueError("phone transport or capture settings changed; restart the bridge before continuing")
+                fixed = ("devices", "lease_cmd", "lease_enforce", "input", "eyes", "tunnel", "pointer_surface")
+                if self._loaded_config and any(getattr(new, k) != getattr(self._config, k) for k in fixed):
+                    raise ValueError("device routing, lease or driver settings changed; restart the bridge before continuing")
                 if new.lease_cmd != self.leases.cmd:  # don't carry leases across authhub endpoints
                     self.leases.release_all()
                     self._owner.clear()

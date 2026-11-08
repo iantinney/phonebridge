@@ -13,7 +13,7 @@
 # have not been exercised on real hardware for this release. All settings: phonebridge.example.toml.
 
 # Both are required for two or more phones. The in-process tunnel carries one phone per server, and "avf" (and "auto"
-# on macOS) is one capture per Mac that isn't tied to a phone. "dvt" (stills only) also works for eyes.
+# on macOS) is restricted to one attached phone. "dvt" (stills only) also works for eyes.
 tunnel = "tunneld"
 eyes = "stream"
 

@@ -1,4 +1,4 @@
-"""T1, the task planner (docs/design/task-agent.md §3.2): one call per step on Ian's Claude plan (the warm `claude -p`
+"""T1, the task planner (docs/design/task-agent.md §3.2): one call per step on the configured Claude plan (a fresh `claude -p`
 through `vlm.VLM.ask`, no second client), shown the goal, the Screen id, its named targets, the numbered OCR items,
 the app card and the last actions with their outcomes; it answers with ONE next action by name or item number, never
 a coordinate. The Mobilerun Manager/Executor idea cut to what we need: their `<memory>` block is one progress line

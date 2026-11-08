@@ -24,6 +24,7 @@ import time
 from typing import Awaitable, Callable
 
 from .stream import Frames
+from .config import udid_key
 
 log = logging.getLogger(__name__)
 
@@ -130,11 +131,6 @@ async def _pump(seconds: float) -> None:
 
     NSRunLoop.currentRunLoop().runUntilDate_(NSDate.dateWithTimeIntervalSinceNow_(seconds))
     await asyncio.sleep(0)
-
-
-def udid_key(udid: str) -> str:
-    """A UDID for comparing: usbmux and RSD write 00008101-001919082EBA001E; other APIs may drop the hyphen or the case."""
-    return str(udid).replace("-", "").casefold()
 
 
 def bound_device(devices, udid: str, muxed: str):

@@ -180,7 +180,7 @@ def test_without_a_lease_cmd_input_is_refused_unless_enforce_is_off(tmp_path):
     assert b.backend.calls == [("tap", "U12", 1, 2)]
 
 
-def test_config_file_is_reloaded_and_a_new_authhub_drops_held_leases(tmp_path):
+def test_config_can_be_created_but_a_new_lease_service_requires_restart(tmp_path):
     cmd, log = fake_authhub(tmp_path)
     path = tmp_path / "phonebridge.toml"
     b = Bridge(FakeBackend(), log_path=tmp_path / "calls.jsonl", config_path=path)
@@ -192,7 +192,10 @@ def test_config_file_is_reloaded_and_a_new_authhub_drops_held_leases(tmp_path):
     assert b.leases.holds("device:iphone12")
     path.write_text('[devices.iphone12]\nudid = "U12"\n[lease]\nenforce = false\n')
     os.utime(path, (1, 1))  # force a new mtime
-    assert b.config.lease_cmd == [] and not b.leases.holds("device:iphone12")
+    with pytest.raises(ValueError, match="restart the bridge"):
+        _ = b.config
+    assert b.leases.holds("device:iphone12")  # don't drop ownership in the middle of an action
+    asyncio.run(b.close())
     assert authhub_calls(log) == ["acquire", "release"]
 
 

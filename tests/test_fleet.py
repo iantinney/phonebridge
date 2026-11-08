@@ -2,13 +2,16 @@
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+import io
 import json
+import math
 import subprocess
 import sys
 import threading
 import time
 
 import pytest
+from PIL import Image
 
 from phonebridge.bridge import Bridge, Parked, StaleInput
 from phonebridge.config import Config, Device
@@ -16,6 +19,8 @@ from phonebridge.humanize import HumanConfig
 from phonebridge.lease import LeaseError, Leases
 from phonebridge.mcp_server import build
 from test_bridge import EXACT, FakeBackend, tiny_png
+from test_seven_phones import fleet as driver_fleet, UDIDS, COLORS, DISPLAYS, open_all, paint, session, hid_point
+from phonebridge.screens.store import Store
 
 
 def fleet(tmp_path, monkeypatch, human=EXACT):
@@ -245,3 +250,57 @@ def test_config_edit_after_delivery_does_not_turn_a_tap_into_a_failure(tmp_path)
         finally:
             await b.close()  # cleanup also uses the identity acquired before the edit
     asyncio.run(run())
+
+
+def test_look_pixels_taps_and_a_lost_lease_stay_on_their_phone(driver_fleet, tmp_path, monkeypatch):
+    """Actual Bridge/Eyes/Pmd3 routing with fake USB/tunnels/HID, and real local lease subprocesses."""
+    monkeypatch.setenv("PHONEBRIDGE_STATE", str(tmp_path / "state"))
+    cfg = Config(devices={f"phone{i}": Device(f"phone{i}", u, f"device:phone{i}") for i, u in enumerate(UDIDS)},
+                 lease_cmd=[sys.executable, "-m", "phonebridge.local_lease"], humanize=EXACT,
+                 tunnel="tunneld", eyes="stream")
+    b = Bridge(driver_fleet.backend, cfg, log_path=tmp_path / "calls.jsonl")
+    b.op_watch = False
+    b.eyes_from(Store(records=[], corpus=tmp_path / "corpus"), ocr=lambda *a, **kw: [])
+
+    async def run():
+        try:
+            frames = await open_all(b.backend)
+            for i, frame in enumerate(frames):
+                paint(frame, i)
+                b._awake[UDIDS[i]] = time.monotonic()
+            looks = await asyncio.gather(*(b.look(a, settle=False) for a in cfg.devices))
+            for i, (alias, look) in enumerate(zip(cfg.devices, looks)):
+                png, meta = await b.frame(alias, format="png", seq=look["frame_seq"])
+                im = Image.open(io.BytesIO(png)).convert("RGB")
+                assert im.size == DISPLAYS[i] and im.getpixel((1, 1)) == COLORS[i]
+                assert (meta["width"], meta["height"]) == DISPLAYS[i]
+            await asyncio.gather(*(b.tap(a, 10 + i, 20 + i, caller=a, think=False)
+                                   for i, a in enumerate(cfg.devices)))
+            for i, u in enumerate(UDIDS):
+                reports = session(b.backend, u).hid.reports
+                assert len(reports) == 2
+                assert all(r[1:] == hid_point(10 + i, 20 + i, i) for r in reports)
+            identity = cfg.resolve("phone3").lease
+            token, _ = b.leases._held[identity]
+            b.leases._held[identity] = (token, -math.inf)  # a renewal was lost
+            with pytest.raises(LeaseError, match="expired"):
+                await b.tap("phone3", 12, 25, caller="phone3", think=False)
+            assert len(session(b.backend, UDIDS[3]).hid.reports) == 2
+            await b.tap("phone4", 12, 25, caller="phone4", think=False)
+            assert len(session(b.backend, UDIDS[4]).hid.reports) == 4
+        finally:
+            await b.close()
+    asyncio.run(run())
+
+
+def test_device_alias_cannot_switch_physical_phones_until_restart(tmp_path):
+    path = tmp_path / "phonebridge.toml"
+    original = '[devices.phone]\nudid = "00008101-0000000000000001"\n'
+    path.write_text(original)
+    b = Bridge(FakeBackend(), config_path=path, log_path=tmp_path / "calls.jsonl")
+    assert b.config.resolve("phone").udid.endswith("1")
+    path.write_text(original.replace("0000000000000001", "0000000000000002"))
+    for _ in range(2):
+        with pytest.raises(ValueError, match="restart the bridge"):
+            _ = b.config
+    assert b.backend.calls == []

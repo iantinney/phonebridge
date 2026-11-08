@@ -26,7 +26,7 @@ uv run phonebridge devices
 uv run phonebridge setup --all --multi-phone stream
 ```
 
-Setup prints the alias-to-UDID mapping. Check that mapping against your physical phones.
+Setup prints the alias-to-UDID mapping (`phone`, `phone-2`, …). Check that mapping against your physical phones.
 It preserves existing configuration and refuses ambiguous identities. To add a named phone
 instead of all attached phones:
 
@@ -41,11 +41,12 @@ sudo uv run pymobiledevice3 remote tunneld
 ```
 
 ```sh
+uv run phonebridge setup --check
 uv run phonebridge serve --http
 ```
 
 The server listens on Mac loopback at `http://127.0.0.1:8934/mcp`. Restart it after changing
-transport or capture settings. Multiple phones use `tunnel = "tunneld"` and `eyes = "stream"`
+devices, lease, transport or capture settings. Multiple phones use `tunnel = "tunneld"` and `eyes = "stream"`
 (or `"dvt"` for still screenshots). The no-root in-process userspace tunnel is a single-phone
 option; it cannot safely share its process with another phone's tunnel.
 
@@ -57,13 +58,24 @@ stateless client. Devices can run in parallel; actions on the same phone run seq
 
 An example instruction for your agent:
 
-> Use phone3 only. Read its screen, open Settings → General → About, and report its iOS
+> Use phone-3 only. Read its screen, open Settings → General → About, and report its iOS
 > version and model. Do not change settings. Look again after each action, and stop if the
 > expected screen is not visible. Release your controller when finished.
 
 This is an example prompt, not a claim that this exact task has been validated on seven phones.
-Another agent can simultaneously work on `phone4`. A competing controller on `phone3` is
+Another agent can simultaneously work on `phone-4`. A competing controller on `phone-3` is
 refused. Never reuse a coordinate, OCR item or frame from a different device.
+
+This is a single-operator service for trusted agents on your Mac. Controller IDs prevent
+accidental collisions; they are not separate tenant credentials. Read tools can see the
+selected phone even while another controller holds it. Keep the service on loopback and
+do not give its access token to an untrusted client.
+
+External MCP agents keep their own model context. If you enable the optional built-in
+`PHONEBRIDGE_VLM=claude-cli` route, each uncached screen question starts and closes its own
+CLI process so one phone's conversation cannot leak into another's. That adds startup latency;
+seven simultaneous model processes have not been profiled for memory use. The route is off
+by default.
 
 ```mermaid
 flowchart LR
@@ -83,6 +95,9 @@ acceleration and deceleration, variable keystroke cadence, and pauses between ac
 Each physical phone has its own random state; work on another phone does not change its
 gesture sequence. A fixed seed is available for reproducible testing. Paste supports longer
 text and Unicode. Agents still need to choose the correct control and verify the result.
+Advanced callers can provide their own pacing; the natural defaults are not an unalterable
+behaviour policy. Experimental digitizer paths and pointer-surface removal are outside this
+claim and are not enabled by the seven-phone configuration.
 
 The bridge checks device ownership, lock state, foreground app and stale input. Device
 parking and failures are isolated; ambiguous effectful input is not blindly retried. These
@@ -99,13 +114,14 @@ account permissions and service rules, and stop on account challenges rather tha
 
 ```sh
 uv sync --frozen
-uv run pytest -q tests/test_fleet.py tests/test_bridge.py tests/test_humanize.py tests/test_local_lease.py
+uv run pytest -q tests/test_fleet.py tests/test_seven_phones.py tests/test_host_fleet.py tests/test_config.py tests/test_setup.py tests/test_humanize.py tests/test_local_lease.py
 ```
 
 The fleet tests require no phone and send no external account actions. They check seven
 simultaneous MCP inputs, physical-device routing, competing controllers, distinct screenshots,
 disconnect isolation, same-phone serialization, a blocked lease command, recovery attribution,
 and independent bounded gestures. Driver tests separately exercise transport and capture routing.
+The [seven-phone example config](../phonebridge.seven-phones.example.toml) shows the generated layout.
 
 The [native proof](demo/taught-profile-check/) records an imported workflow operating one
 real iPhone. It is separate evidence from these multi-device software tests.
