@@ -1,5 +1,7 @@
 import asyncio
 import json
+from pathlib import Path
+import tempfile
 
 import pytest
 
@@ -38,10 +40,10 @@ class FakeDaemon:
 
 
 @pytest.fixture
-def rig(tmp_path, monkeypatch):
+def rig(monkeypatch):
     async def make(**kw):
         d = FakeDaemon(**kw)
-        sock = tmp_path / "bthid.sock"
+        sock = Path(sock_dir) / "bthid.sock"
         server = await d.serve(str(sock))
         eyes = FakeBackend()
         eyes.screen = lambda udid: asyncio.sleep(0, tiny_png(1170, 2532))
@@ -51,7 +53,9 @@ def rig(tmp_path, monkeypatch):
             return ADDR, "iPhone13,2"
         monkeypatch.setattr(b, "_usb_setup", usb_setup)
         return b, d, server
-    return make
+    # macOS's per-user temp path plus pytest's test name can exceed AF_UNIX's path limit.
+    with tempfile.TemporaryDirectory(prefix="pb-bt-", dir="/tmp") as sock_dir:
+        yield make
 
 
 def test_tap_moves_absolute_then_clicks_on_the_relative_report(rig):
