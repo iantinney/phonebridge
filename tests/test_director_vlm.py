@@ -149,6 +149,9 @@ def test_warm_claude_restarts_its_conversation_every_max_turns(monkeypatch):
         def terminate(self):
             pass
 
+        def wait(self, timeout=None):
+            return 0
+
     w = cv.WarmClaude(max_turns=3)
     monkeypatch.setattr(w, "_start", lambda: (starts.append(1), setattr(w, "proc", Proc())))
     for _ in range(7):

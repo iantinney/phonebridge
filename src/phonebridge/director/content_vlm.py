@@ -5,8 +5,13 @@ the pacer; the caller's action does the write and verifies it on the next look."
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
+import os
+import signal
+import subprocess
+import threading
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Awaitable, Callable
@@ -20,6 +25,7 @@ SCHEMA = {"type": "object", "additionalProperties": False, "required": list(FIEL
     "topics": {"type": "array", "maxItems": 3, "items": {"type": "string"}},
     "interest": {"type": "integer", "minimum": 0, "maximum": 3},
     "text_to_read": {"type": "string"}, "quick_skip": {"type": "boolean"}}}
+CLOSE_WAIT_S = 2.0  # a process asked to end gets this long before its group is killed
 Client = Callable[[bytes, str, str], Awaitable[dict]]
 
 
@@ -151,11 +157,21 @@ def claude_bin() -> str:
     return "claude"
 
 
+def _kill_group(proc) -> None:
+    """The process's own group (start_new_session): a stalled one goes whole, ssh and its children with it."""
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except Exception:  # noqa: BLE001 - a test double or a process already gone
+        (getattr(proc, "kill", None) or proc.terminate)()
+
+
 class WarmClaude:
     """The understanding model until the API key lands: one persistent `claude -p --input-format stream-json
     --output-format stream-json` process (Haiku) kept warm, fed user messages with the frame as an image block. Measured
-    on the VM 2026-10-18: 9 s for the first answer (6.5 s of it startup), 1.3 s for the next ones. One request at a time;
-    the process is restarted if it dies. Call `client()` for the `Client` shape."""
+    on the VM 2026-10-18: 9 s for the first answer (6.5 s of it startup), 1.3 s for the next ones. One request at a time,
+    across threads too (the process answers in order, so a second writer would read the first's answer; a restart or close
+    waits for the turn in progress); the process is restarted if it dies. One instance is ONE conversation: never share it
+    between phones. Call `client()` for the `Client` shape."""
 
     def __init__(self, model: str = "haiku", timeout: float = 60.0, system: str | None = None, schema: dict | None = None, max_turns: int = 25,
                  via: list[str] | None = None):
@@ -165,12 +181,11 @@ class WarmClaude:
         self.via = via  # e.g. ["ssh", "-o", "BatchMode=yes", "myhost"]: the same CLI on a host where it is logged in to a plan
         self.proc = None
         self.lock = asyncio.Lock()
+        self._serial = threading.RLock()  # a whole turn, restart and close included (reentrant: a turn closes a dead stream)
         self.calls = 0
         self.max_turns, self.turns = max_turns, 0  # one stream-json process is ONE growing conversation (~1.3K tokens per image turn, surfaces' measure): restart it every max_turns
 
     def _start(self):
-        import subprocess
-
         import shlex
 
         argv = ["claude" if self.via else claude_bin(), "-p", "--model", self.model, "--input-format", "stream-json", "--output-format", "stream-json",
@@ -183,6 +198,10 @@ class WarmClaude:
                                      start_new_session=True)  # its own process group: a stalled one is killed whole (ssh and its children)
 
     def _ask(self, png: bytes, text: str) -> dict:
+        with self._serial:
+            return self._turn(png, text)
+
+    def _turn(self, png: bytes, text: str) -> dict:
         import base64
 
         if self.proc is not None and self.turns >= self.max_turns:
@@ -195,19 +214,11 @@ class WarmClaude:
         msg = {"type": "user", "message": {"role": "user", "content": [{"type": "text", "text": text}, *image]}}
         self.proc.stdin.write(json.dumps(msg) + "\n")
         self.proc.stdin.flush()
-        import threading
-
         expired = threading.Event()  # a stalled stream (a dead tunnel) is killed at the deadline: the blocked readline returns
 
         def expire(proc=self.proc):
-            import os
-            import signal
-
             expired.set()
-            try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except Exception:  # noqa: BLE001 - a test double or a process already gone
-                (getattr(proc, "kill", None) or proc.terminate)()
+            _kill_group(proc)
         timer = threading.Timer(self.timeout, expire)
         timer.daemon = True
         timer.start()
@@ -239,13 +250,21 @@ class WarmClaude:
                 return json.loads(out[out.find("{"): out.rfind("}") + 1])
 
     def close(self) -> None:
-        if self.proc is not None:
+        with self._serial:
+            proc, self.proc = self.proc, None
+            if proc is None:
+                return
             try:
-                self.proc.stdin.close()
-                self.proc.terminate()
+                proc.stdin.close()
+                proc.terminate()
             except Exception:
                 pass
-            self.proc = None
+            try:
+                proc.wait(timeout=CLOSE_WAIT_S)  # reaped here: a process started for one ask leaves no zombie
+            except subprocess.TimeoutExpired:
+                _kill_group(proc)
+                with contextlib.suppress(subprocess.TimeoutExpired):
+                    proc.wait(timeout=CLOSE_WAIT_S)
 
     def client(self) -> Client:
         import asyncio

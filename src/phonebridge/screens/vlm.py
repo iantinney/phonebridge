@@ -1,5 +1,5 @@
 """PER-05: the slow model for unfamiliar screens, on Ian's Claude plan (DECISIONS "Models via his plans", 04:3xZ 10-19:
-no Anthropic API key). The director's warm `claude` process (`content_vlm.WarmClaude`: Haiku, Sonnet on escalation)
+no Anthropic API key). A `claude` process of its own per ask (`content_vlm.WarmClaude`: Haiku, Sonnet on escalation)
 answers in a closed JSON schema, images at ≤ 585×1266; AWS Bedrock only when the plan reports a usage limit. A per-day
 spend cap (default $2, metered spend only: Bedrock) with an alert at 80 %; every call is logged (frame hash, prompt
 hash, answer, usage, cost, provider) and cached by frame hash + prompt hash so replays never call out.
@@ -190,7 +190,6 @@ def extract_json(text: str) -> dict:
 # the CLI's own usage-limit notices ("You've hit your limit · resets 3pm", "Claude AI usage limit reached", a 429), the
 # same words lanewatch watches for: the one case that falls back to Bedrock
 PLAN_LIMIT = re.compile(r"hit your (?:\w+ )?limit|usage limit|limit reached|out of (?:extra )?usage|rate.?limit|\b429\b", re.I)
-_warm_pool: dict = {}  # (cli model, system, schema) -> one warm claude process, shared by every VLM in this process
 
 
 NOT_HERE = re.compile(r"not logged in|/login|no such file|not found", re.I)  # the CLI can't answer on this host (vs a plan limit)
@@ -205,10 +204,12 @@ def claude_via() -> list[str] | None:
 
 
 def plan_transport(payload: dict, timeout: float = 120.0) -> dict:
-    """The Messages-shaped payload through the director's warm `claude` process on the CLI's plan: one process per model,
-    system prompt and schema, kept warm (≈ 3 s per answer after a one-off startup). Returns a Messages-like response;
-    the plan is not metered spend (cost 0). When the CLI is not logged in (or absent) on this host, the same process runs
-    on `claude_via()` (the Mac's daemon has no keychain access over its own launch; measured 10-20: 'Not logged in')."""
+    """The Messages-shaped payload through one `claude` process on the CLI's plan, started for this ask and closed after it:
+    a kept process is one growing conversation, so sharing it would show one phone's screens to another's question. Every
+    ask the cache misses pays the CLI's startup (about 9 s against 1.3-3 s for a warm turn, measured 2026-10). Returns a
+    Messages-like response; the plan is not metered spend (cost 0). When the CLI is not logged in (or absent) on this host,
+    the same process runs on `claude_via()` (the Mac's daemon has no keychain access over its own launch; measured 10-20:
+    'Not logged in')."""
     from ..director.content_vlm import WarmClaude
     model = CLI_MODELS.get(payload["model"], payload["model"])
     schema = (payload.get("output_config") or {}).get("format", {}).get("schema")
@@ -217,11 +218,12 @@ def plan_transport(payload: dict, timeout: float = 120.0) -> dict:
     text = "\n".join(b["text"] for b in content if b.get("type") == "text")
 
     def ask(remote: bool) -> dict:
-        key = (model, payload.get("system"), json.dumps(schema, sort_keys=True), remote)
-        if key not in _warm_pool:
-            _warm_pool[key] = WarmClaude(model, timeout=timeout, system=payload.get("system"), schema=schema,
-                                         **({"via": claude_via()} if remote else {}))
-        return _warm_pool[key]._ask(png, text)
+        warm = WarmClaude(model, timeout=timeout, system=payload.get("system"), schema=schema,
+                          **({"via": claude_via()} if remote else {}))
+        try:
+            return warm._ask(png, text)
+        finally:
+            warm.close()
     try:
         ans = ask(_remote["on"])
     except Exception as e:  # noqa: BLE001 - only "can't answer here" moves it; a plan limit or a bad answer propagates
@@ -240,7 +242,7 @@ def route() -> str:
 
 
 class VLM:
-    """The model `route()` names: the local claude CLI's plan (the warm claude process), Bedrock on a plan usage limit;
+    """The model `route()` names: the local claude CLI's plan (one process per ask), Bedrock on a plan usage limit;
     a `transport` callable replaces both (tests, a local model later)."""
 
     def __init__(self, model: str = MODEL, cap_usd: float = 2.0, state_dir: Path = STATE, notify=None, transport=None,
