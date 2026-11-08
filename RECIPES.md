@@ -22,7 +22,7 @@ Per profile you get: `found`, the counts as displayed (rounded the way the app r
 *Status: done once on the maintainers' phone:* the routine verified in (c) was derived from a recorded Account check and confirmed in the Teach tab.
 
 **c. Run the taught workflow on a fresh handle** (`taught_run`, inputs: the routine id and `{"handle": "<new handle>"}`).
-*Status: verified twice.* On 2026-11-08 a workflow taught from the `@natgeo` check ran on the maintainers' iPhone 12: once on a different public account (32 s, 6 inputs), and once, imported unchanged into a fresh install of this release, on `@apple` (1,413 posts / 38.1M followers / 9 following, all from one accurate result frame; 9 inputs). Neither needed anyone to step in; four earlier attempts failed and led to fixes. In this alpha a taught workflow can only run Instagram profile checks.
+*Status: verified twice.* On 2026-11-08 a workflow taught from the `@natgeo` check ran on the maintainers' iPhone 12: once on a different public account (32 s, 6 inputs), and once, imported unchanged into a fresh install of this release, on `@apple` (1,413 posts / 38.1M followers / 9 following, all from one accurate result frame; 9 inputs). Neither needed anyone to step in. Seven attempts failed along the way (four before the first success, three on the standalone release before the second) and led to fixes. In this alpha a taught workflow can only run Instagram profile checks.
 
 ## 2. Feed scout: a short list with why and where
 
