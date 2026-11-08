@@ -1,0 +1,67 @@
+name: Recipe contribution
+description: Propose a reusable phone task (a recipe) that you have run on a real device.
+title: "Recipe: <what it does> in <app>"
+labels: ["recipe"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A recipe is a task anyone can rerun on their own phone with new inputs: for example, "check a public profile and return the latest posts with timestamps".
+        Recipes are contributed under the project's license (GPL-3.0-or-later).
+        **No personal data:** describe the steps in words, and use only made-up inputs or content you have every right to share. No screenshots of private messages, feeds or accounts.
+  - type: input
+    id: what
+    attributes:
+      label: What the recipe does, in one sentence
+    validations:
+      required: true
+  - type: input
+    id: apps
+    attributes:
+      label: App(s) and versions
+      placeholder: "e.g. Instagram 412.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: effect
+    attributes:
+      label: Does it change anything on the phone or an account?
+      options:
+        - No, read-only
+        - Yes, it writes (posting, sending, editing); it must require approval of each action
+    validations:
+      required: true
+  - type: textarea
+    id: inputs
+    attributes:
+      label: Inputs and outputs
+      description: What a user provides (e.g. a public handle) and what comes back (e.g. JSON fields, files).
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps (or how you taught it)
+      description: The screens it passes through and what it does on each, plus where it should stop and ask a person.
+    validations:
+      required: true
+  - type: textarea
+    id: run
+    attributes:
+      label: Sanitized evidence of a real run
+      description: Device and iOS version, the run id and its result line, timings, and how many times a person had to step in. Text only.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: limits
+    attributes:
+      label: Limits and safety
+      description: Rate limits, account limits, screens it can't handle, anything a user must know before running it.
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Before you submit
+      options:
+        - label: This proposal contains no private content or personal data, and I have the right to contribute it under GPL-3.0-or-later.
+          required: true

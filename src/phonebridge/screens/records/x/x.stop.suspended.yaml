@@ -1,0 +1,13 @@
+id: x.stop.suspended
+platform: x
+bundle: com.atebits.Tweetie2
+kind: stop
+appearance: any
+match:
+  ocr_any:
+  - Suspended
+  at_least: 1
+status: confirmed
+stop_reason: restricted
+source: PT
+note: config/pacing.toml [<platform>.stop] texts (PT), verbatim; one matching rule (SCR-11)

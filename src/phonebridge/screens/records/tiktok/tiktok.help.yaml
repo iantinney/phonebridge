@@ -1,0 +1,38 @@
+id: tiktok.help
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+match:
+  ocr_any:
+  - How can we help?
+  - Account recovery
+  - Safety Center
+  - Report a technical problem
+  - Frequently asked questions
+  at_least: 2
+  ocr_in:
+    How can we help?:
+    - 0.0
+    - 0.04
+    - 0.8
+    - 0.2
+  ocr_none:
+  - Jump to a section
+  - Safety tools
+targets:
+  back:
+    region:
+    - 0.0
+    - 0.04
+    - 0.16
+    - 0.13
+  safety_center:
+    ocr: Safety Center
+next:
+  back:
+  - tiktok.settings
+  safety_center:
+  - tiktok.safety_center
+way_out:
+- back
+status: confirmed
+source: tracer

@@ -1,0 +1,51 @@
+id: ios.home
+platform: ios
+bundle: com.apple.springboard
+appearance: dark
+match:
+  ocr_any:
+  - Settings
+  - Instagram
+  - TikTok
+  - YouTube
+  - Reddit
+  - Threads
+  - Feeld
+  - Search
+  - Camera
+  - Mail
+  - Notes
+  - Calendar
+  - Weather
+  - FaceTime
+  - Reminders
+  - Clock
+  - App Store
+  - Maps
+  - Wallet
+  at_least: 4
+  ocr_in:
+    Search:
+    - 0.3
+    - 0.78
+    - 0.7
+    - 0.9
+  ocr_none:
+  - Airplane Mode
+  - Photo Library Access
+targets:
+  instagram:
+    ocr: Instagram
+  tiktok:
+    ocr: TikTok
+  settings:
+    ocr: Settings
+next:
+  instagram:
+  - instagram.home
+  tiktok:
+  - tiktok.feed
+  settings:
+  - ios.settings
+status: confirmed
+source: tracer

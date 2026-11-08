@@ -1,0 +1,14 @@
+id: reddit.stop.too_much
+platform: reddit
+bundle: com.reddit.Reddit
+kind: stop
+appearance: any
+match:
+  ocr_any:
+  - you are doing that too much
+  - Try again in
+  at_least: 1
+status: confirmed
+stop_reason: action_block
+source: PT
+note: config/pacing.toml [<platform>.stop] texts (PT), verbatim; one matching rule (SCR-11)

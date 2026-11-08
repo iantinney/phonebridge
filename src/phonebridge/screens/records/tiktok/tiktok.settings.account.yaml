@@ -1,0 +1,30 @@
+id: tiktok.settings.account
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+match:
+  ocr_any:
+  - Account Information
+  - Password
+  - Passkey
+  - Verification
+  at_least: 3
+  ocr_in:
+    Account:
+    - 0.25
+    - 0.04
+    - 0.75
+    - 0.11
+targets:
+  back:
+    region:
+    - 0.0
+    - 0.04
+    - 0.16
+    - 0.13
+next:
+  back:
+  - tiktok.settings
+way_out:
+- back
+status: confirmed
+source: tracer

@@ -1,0 +1,66 @@
+id: instagram.new_post.picker
+platform: instagram
+bundle: com.burbn.instagram
+appearance: dark
+match:
+  ocr_any:
+  - New post
+  - Recents
+  - Next
+  - Select
+  at_least: 3
+  ocr_in:
+    New post:
+    - 0.25
+    - 0.04
+    - 0.75
+    - 0.17
+    Next:
+    - 0.72
+    - 0.04
+    - 1.0
+    - 0.13
+  ocr_none:
+  - Write a caption
+  - Add a caption
+  - Edit video
+targets:
+  next:
+    ocr: Next
+    region:
+    - 0.72
+    - 0.04
+    - 1.0
+    - 0.13
+  close:
+    template: instagram/close.png
+    region:
+    - 0.0
+    - 0.04
+    - 0.16
+    - 0.13
+    fallback:
+    - 0.069
+    - 0.083
+  recents:
+    ocr: Recents
+  newest:
+    region:
+    - 0.22
+    - 0.62
+    - 0.45
+    - 0.72
+next:
+  next:
+  - instagram.reel.editor
+  - instagram.reel.details
+  - instagram.reel.final
+  close:
+  - instagram.home
+way_out:
+- close
+timeout_s: 20.0
+status: confirmed
+source: tracer
+note: the gallery; the mode tabs OCR as one line ('POST STORY INSTANTS R'), so they are not anchors (tracer's old
+  flow failed on them)

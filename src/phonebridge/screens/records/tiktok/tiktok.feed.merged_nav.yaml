@@ -1,0 +1,89 @@
+id: tiktok.feed.merged_nav
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+appearance: dark
+avoid:
+- - 0.0
+  - 0.04
+  - 1.0
+  - 0.12
+- - 0.0
+  - 0.9
+  - 1.0
+  - 1.0
+- - 0.85
+  - 0.35
+  - 1.0
+  - 0.52
+- - 0.85
+  - 0.6
+  - 1.0
+  - 0.85
+header:
+- 0.0
+- 0.6
+- 0.75
+- 0.85
+chrome:
+- - 0.0
+  - 0.9
+  - 1.0
+  - 1.0
+match:
+  inks:
+  - {name: home_lit, kind: bright, region: [0.04, 0.915, 0.14, 0.95], min: 0.15}
+  - {name: profile_dim, kind: bright, region: [0.84, 0.915, 0.94, 0.95], max: 0.06}
+  - {name: plus_cyan, kind: cyan, region: [0.33, 0.905, 0.67, 0.96], min: 0.004}
+  - {name: plus_red, kind: red, region: [0.33, 0.905, 0.67, 0.96], min: 0.004}
+  ocr_none:
+  - For You
+  - Settings and privacy
+  - Edit profile
+  - Add comment...
+  - Not interested
+  - Send to
+  - Added to Favorites
+  - Continue editing this post?
+targets:
+  profile_tab:
+    region:
+    - 0.8
+    - 0.9
+    - 1.0
+    - 0.97
+  home_tab:
+    region:
+    - 0.0
+    - 0.9
+    - 0.2
+    - 0.97
+  create:
+    region:
+    - 0.42
+    - 0.91
+    - 0.58
+    - 0.955
+  search:
+    region:
+    - 0.88
+    - 0.06
+    - 0.98
+    - 0.105
+next:
+  profile_tab:
+  - tiktok.profile
+  search:
+  - tiktok.search
+  create:
+  - tiktok.create.camera
+way_out:
+- home
+evidence:
+- evidence/surfaces-capture/tiktok-20261019T065927Z (01, 04, 05)
+status: candidate
+source: surfaces
+note: '10-19 (surfaces3): pixels, not the nav words (the fast level misreads the merged line, so only the accurate level matched): the same bottom-bar inks as tiktok.feed, and ''For You'' vetoed so the two never both match. | The For You feed when OCR merges the top nav into one truncated line: ''ew Haven Following Friends For''
+  (06:59Z, the location tab first) or the fast level''s ''LIVE ewHaven Following Friends ForYou'' (fast-eyes). The
+  3-word anchor counts anywhere in a top-band line; ''For You'' is vetoed, so this and tiktok.feed (the split tabs
+  / the full line) never both match. Same chrome, avoid zones, header and targets as tiktok.feed; the director''s
+  ''tiktok.feed'' prefix accepts it.'

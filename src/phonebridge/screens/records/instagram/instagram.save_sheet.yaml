@@ -1,0 +1,18 @@
+id: instagram.save_sheet
+platform: instagram
+bundle: com.burbn.instagram
+appearance: any
+match:
+  ocr_any:
+  - Save to
+  - New collection
+  - Collections
+  - Saved
+  - Save to collection
+  at_least: 2
+way_out:
+- swipe
+status: candidate
+source: surfaces
+note: 'After the bookmark: the saved toast / Save to collection sheet. Research candidate, mock fixture (no save
+  capture).'

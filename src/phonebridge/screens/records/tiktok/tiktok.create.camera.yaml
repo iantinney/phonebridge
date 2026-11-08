@@ -1,0 +1,53 @@
+id: tiktok.create.camera
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+appearance: any
+match:
+  ocr_any:
+  - Add sound
+  - 10m
+  - 60s
+  - 15s
+  - PHOTO
+  - TEXT
+  - CREATE
+  - TEMPLATES
+  - LIVE
+  - Effects
+  - Upload
+  - 10m 60s 15s
+  - PHOTO TEXT
+  at_least: 3
+  ocr_none:
+  - Home
+  - Inbox
+  - Next
+  - Your Story
+  - Recents
+  - Select multiple
+targets:
+  upload:  # TikTok 47 (2026-09 recordings): an unlabelled gallery tile bottom-left, on the POST tab's row
+    region:
+    - 0.03
+    - 0.9
+    - 0.13
+    - 0.95
+  close:  # X at (7%, 10%)
+    region:
+    - 0.0
+    - 0.07
+    - 0.14
+    - 0.13
+next:
+  upload:
+  - tiktok.upload.picker
+  close:
+  - tiktok.feed
+way_out:
+- close
+timeout_s: 20.0
+status: candidate
+source: tiktok-lane
+note: 'drafted from 2026-09 iOS screen recordings (research, lane tiktok); no live frame yet. OCR reads the mode bar
+  as one line ("10m 60s 15s PHOTO TEXT"). Older builds put a labelled Upload right of the shutter. The first open may
+  ask for camera/microphone access (iOS alert; the publishing flow answers Don''t Allow).'

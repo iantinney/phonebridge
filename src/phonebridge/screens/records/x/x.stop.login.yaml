@@ -1,0 +1,13 @@
+id: x.stop.login
+platform: x
+bundle: com.atebits.Tweetie2
+kind: stop
+appearance: any
+match:
+  ocr_any:
+  - Log in
+  at_least: 1
+status: confirmed
+stop_reason: login_wall
+source: PT
+note: config/pacing.toml [<platform>.stop] texts (PT), verbatim; one matching rule (SCR-11)

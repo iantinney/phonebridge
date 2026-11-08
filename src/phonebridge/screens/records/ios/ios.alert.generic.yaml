@@ -1,0 +1,15 @@
+id: ios.alert.generic
+platform: ios
+bundle: '*'
+kind: alert
+match:
+  ocr_any:
+  - Allow
+  - Don't Allow
+  - OK
+  - Cancel
+  at_least: 1
+status: confirmed
+source: tracer
+note: 'the generic iOS system-alert class (PLAN §5.1): matched by cascade.system_alert() (a centred box with Allow
+  / Don''t Allow / OK / Cancel buttons), never by these anchors; parks the task with the alert text'

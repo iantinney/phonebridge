@@ -1,0 +1,33 @@
+id: instagram.tag
+platform: instagram
+bundle: com.burbn.instagram
+appearance: any
+match:
+  ocr_all:
+  - posts
+  ocr_any:
+  - Top posts
+  - Top
+  - Recent
+  - Follow
+  at_least: 2
+  ocr_none:
+  - followers
+  - Message
+  - Edit profile
+targets:
+  back:
+    region:
+    - 0.0
+    - 0.05
+    - 0.12
+    - 0.1
+next:
+  back:
+  - instagram.search.typing
+way_out:
+- back
+status: candidate
+source: task-agent
+note: 'Designed (lane task-agent 10-19), NOT from a real frame: a hashtag page (#tag title, the post count, Follow, Top /
+  Recent) with its grid; tiles resolve as run/do.py selectors anchored on the Follow row. Proven only on run/dosim.py.'

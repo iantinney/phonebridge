@@ -1,0 +1,33 @@
+id: tiktok.popup.discard
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+kind: popup
+appearance: any
+match:
+  ocr_any:
+  - Discard edits?
+  - Discard video?
+  - Discard this
+  - Discard
+  - Cancel
+  at_least: 2
+  ocr_none:
+  - Your Story
+  - Everyone can view this post
+targets:
+  cancel:
+    ocr: Cancel
+  discard:  # drops the draft: a rehearsal's way out
+    ocr: Discard
+    irreversible: true
+next:
+  cancel:
+  - tiktok.upload.editor
+  discard:
+  - tiktok.create.camera
+  - tiktok.upload.picker
+answer: cancel
+status: candidate
+source: tiktok-lane
+note: 'the dialog when backing out of the editor; the safe answer keeps editing, Discard drops our draft (a
+  rehearsal''s way out). Drafted (no live frame yet).'

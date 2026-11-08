@@ -1,0 +1,115 @@
+id: instagram.screen.instagram_explore_search_grid
+platform: instagram
+bundle: com.burbn.instagram
+appearance: dark
+avoid:
+- - 0.0
+  - 0.0
+  - 1.0
+  - 0.17
+- - 0.0
+  - 0.88
+  - 1.0
+  - 1.0
+match:
+  ocr_in:
+    Search with Meta:
+    - 0.0
+    - 0.05
+    - 0.85
+    - 0.12
+  ocr_none:
+  - Accounts
+  - Audio
+  - Places
+  - Add comment...
+  templates:
+  - name: explore_bookmark
+    file: instagram/ig_explore_bookmark.png
+    region:
+    - 0.85
+    - 0.05
+    - 1.0
+    - 0.12
+    min_score: 0.92
+  - name: search_tab_active
+    file: instagram/ig_search_tab_active.png
+    region:
+    - 0.6
+    - 0.89
+    - 0.8
+    - 0.97
+    min_score: 0.92
+targets:
+  search_field:
+    ocr: Search with Meta
+    region:
+    - 0.0
+    - 0.05
+    - 0.85
+    - 0.12
+  grid_tile:
+    region:
+    - 0.36
+    - 0.21
+    - 0.64
+    - 0.35
+  home_tab:
+    region:
+    - 0.0
+    - 0.9
+    - 0.2
+    - 0.97
+  reels_tab:
+    region:
+    - 0.2
+    - 0.9
+    - 0.4
+    - 0.97
+  profile_tab:
+    region:
+    - 0.8
+    - 0.9
+    - 1.0
+    - 0.97
+next:
+  search_field:
+  - instagram.search.typing
+  home_tab:
+  - instagram.home
+  reels_tab:
+  - instagram.reels
+  profile_tab:
+  - instagram.profile
+way_out:
+- home_tab
+evidence:
+- instagram/instagram.screen.instagram_explore_search_grid/2026-10-18-v-01.png
+- evidence/tracer-20261018/12-calibrate-tabs/02-explore.png
+- evidence/M1-screens/20261018T204814Z (03-14)
+status: candidate
+source: surfaces
+note: 'VLM screen: This is the Instagram search/explore grid: a "Search with Meta
+  AI" bar, filter chips (For you, Mindset and Motivation, Entrepreneurship), a grid
+  of video thumbnails with view counts, and a bottom tab bar. It has no sheet, popup,
+  or dialog to dismiss, and it is not a login, captcha, or action block. No known
+  screen matches it, so the app is already on a normal browsable screen and no navigation
+  is needed. Choosing none is the safest option. | action none '''' worked; context:
+  run 4a035c81 | 10-19 (surfaces4): the match is the search bar + the ''For you''
+  chip by position (OCR reads ''Meta AI'' as ''Meta Al'': the prefix is used), not
+  the first thumbnails'' captions, so a new grid matches; a search with the keyboard
+  open hides the chips and does not match. grid_tile = the middle tile of the first
+  row (centre 0.50 w, 0.28 h, unscrolled; 3 columns of 0.333 w, rows ~0.206 h from
+  0.179 h). The tap opens a post viewer (header ''Explore'', back chevron): NO real
+  frame of it on this phone yet (the corpus ones are another phone''s layout), so
+  its record and back target wait for the capture visit (docs/lanes/surfaces-capture-plan-4.md).
+  avoid: the search bar + its saved-posts bookmark (0.93 w, 0.085 h), the chips, the
+  tab bar. | 10-19 (task-agent): search_field = the search bar by its own OCR line
+  (the match''s anchor); a tap opens the keyboard (instagram.search.typing, designed).
+  A task''s tap on this named target is the control itself (run/do.py: zone-exempt,
+  bounded by its box); the avoid band keeps feed gestures off it.'
+matches:
+- 4a035c81:d68d71a1bf9e
+- b2483560:82238ba272f6
+- 14836073:82238ba272f6
+successes: 3

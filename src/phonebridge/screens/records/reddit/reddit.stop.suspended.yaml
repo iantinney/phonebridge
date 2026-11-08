@@ -1,0 +1,14 @@
+id: reddit.stop.suspended
+platform: reddit
+bundle: com.reddit.Reddit
+kind: stop
+appearance: any
+match:
+  ocr_any:
+  - Your account has been suspended
+  - has been permanently suspended
+  at_least: 1
+status: confirmed
+stop_reason: restricted
+source: PT
+note: config/pacing.toml [<platform>.stop] texts (PT), verbatim; one matching rule (SCR-11)

@@ -1,0 +1,34 @@
+id: tiktok.account_status
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+match:
+  ocr_any:
+  - good standing
+  - Current violations
+  - Thank you for following our Community
+  - Restored
+  at_least: 2
+  ocr_in:
+    Current violations:
+    - 0.0
+    - 0.2
+    - 0.8
+    - 0.8
+targets:
+  back:
+    region:
+    - 0.0
+    - 0.04
+    - 0.16
+    - 0.13
+checks:
+  standing:
+    ocr_near: good standing
+next:
+  back:
+  - tiktok.safety_center
+way_out:
+- back
+status: confirmed
+source: tracer
+note: read-only health check (Safety Center › Account status)

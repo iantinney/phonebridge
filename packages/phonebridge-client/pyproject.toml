@@ -1,0 +1,14 @@
+[project]
+name = "phonebridge-client"
+version = "0.1.0"
+description = "Shared MCP transport and coherent observations for phonebridge clients"
+requires-python = ">=3.12"
+license = "GPL-3.0-or-later"  # released with phonebridge (pymobiledevice3 is GPL); LICENSE is phonebridge's
+dependencies = ["mcp>=2.3,<3", "pillow>=11"]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

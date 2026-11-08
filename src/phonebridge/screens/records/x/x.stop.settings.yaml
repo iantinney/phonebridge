@@ -1,0 +1,13 @@
+id: x.stop.settings
+platform: x
+bundle: com.atebits.Tweetie2
+kind: stop
+appearance: any
+match:
+  ocr_any: [Security and account access, Privacy and safety, 'Accessibility, display, and languages', Your account, Monetization]
+  at_least: 2
+status: candidate
+stop_reason: settings
+source: surfaces
+note: 'Settings and privacy (drawer › Settings and privacy): parks with no gesture. Two of its section rows, so the
+  drawer''s own "Settings and privacy" row never matches. Not captured; a mock fixture only.'

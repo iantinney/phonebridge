@@ -1,0 +1,44 @@
+id: instagram.settings
+platform: instagram
+bundle: com.burbn.instagram
+appearance: dark
+match:
+  ocr_any:
+  - Settings and activity
+  - Your account
+  - Meta Account
+  - How you use Instagram
+  - Saved
+  - Who can see your content
+  at_least: 2
+  ocr_in:
+    Settings and activity:
+    - 0.25
+    - 0.04
+    - 0.75
+    - 0.17
+  ocr_none:
+  - Cancel
+targets:
+  back:
+    region:
+    - 0.0
+    - 0.04
+    - 0.16
+    - 0.13
+  search:
+    ocr: Search
+    region:
+    - 0.0
+    - 0.1
+    - 1.0
+    - 0.2
+next:
+  back:
+  - instagram.profile
+  search:
+  - instagram.settings.search
+way_out:
+- back
+status: confirmed
+source: tracer

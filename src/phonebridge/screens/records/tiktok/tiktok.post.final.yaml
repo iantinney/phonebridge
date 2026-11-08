@@ -1,0 +1,71 @@
+id: tiktok.post.final
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+appearance: any
+match:
+  ocr_any:
+  - Add description
+  - Edit cover
+  - Hashtags
+  - Mention
+  - Location
+  - Add link
+  - Everyone can view this post
+  - More options
+  - Share to
+  - Manage upload quality
+  - Music Usage Confirmation
+  - Drafts
+  at_least: 3
+  ocr_in:
+    Post:
+    - 0.4
+    - 0.85
+    - 1.0
+    - 1.0
+  ocr_none:
+  - Recents
+  - Select multiple
+  - Your Story
+targets:
+  caption:  # video posts have the one field; photo posts add "Add a catchy title"
+    ocr: Add description
+  post:  # publishes: only as the step of a task carrying Ian's Post approval (ops approved)
+    ocr: Post
+    region:
+    - 0.4
+    - 0.85
+    - 1.0
+    - 1.0
+    irreversible: true
+  drafts:  # saves a draft: never in a rehearsal (the draft is discarded on the way out)
+    ocr: Drafts
+    region:
+    - 0.0
+    - 0.85
+    - 0.5
+    - 1.0
+  back:  # "<" at (5%, 7.7%); with the keyboard up it only closes the keyboard (a second Post shows top-right)
+    region:
+    - 0.0
+    - 0.04
+    - 0.12
+    - 0.11
+checks:  # read before the irreversible tap
+  who_can_watch:
+    ocr_near: Everyone can view this post
+next:
+  post:
+  - tiktok.feed
+  - tiktok.profile
+  back:
+  - tiktok.upload.editor
+way_out:
+- back
+- back
+- close
+timeout_s: 20.0
+status: candidate
+source: tiktok-lane
+note: 'PLAN §5.1''s example screen; drafted (no live frame yet). The engine refuses the irreversible tap outside an
+  approved task and in rehearse.'

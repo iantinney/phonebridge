@@ -1,0 +1,32 @@
+id: tiktok.menu.long_press
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+appearance: any
+match:
+  ocr_any:
+  - Not interested
+  - Report
+  - Speed
+  - Clear display
+  - Clear mode
+  - Captions
+  - Watch later
+  at_least: 3
+  ocr_none:
+  - Send to
+  - Duet
+  - Stitch
+  - Copy link
+targets:
+  not_interested:
+    ocr: Not interested
+next:
+  not_interested:
+  - tiktok.feed
+way_out:
+- swipe
+status: candidate
+source: surfaces
+note: 'The long-press panel on a For You video: Not interested (the rare AGAINST action, operator 10-19), Report, Speed,
+  Clear display, Captions. Research candidate, mock fixture (no capture: AGAINST is empty until the operator writes it).
+  Vetoed by the share panel''s own rows.'

@@ -1,0 +1,27 @@
+id: ios.settings
+platform: ios
+bundle: com.apple.Preferences
+appearance: dark
+match:
+  ocr_any:
+  - Settings
+  - Airplane Mode
+  - Wi-Fi
+  - Bluetooth
+  - Cellular
+  - Battery
+  - Personal Hotspot
+  at_least: 3
+  ocr_in:
+    Settings:
+    - 0.0
+    - 0.04
+    - 0.6
+    - 0.17
+targets:
+  search:
+    ocr: Search
+way_out:
+- home
+status: confirmed
+source: tracer

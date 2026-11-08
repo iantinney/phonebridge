@@ -1,0 +1,29 @@
+id: ios.allow_paste
+platform: ios
+bundle: '*'
+kind: popup
+match:
+  ocr_any:
+  - Allow Paste
+  - Don't Allow
+  at_least: 2
+  ocr_in:
+    Allow Paste:
+    - 0.1
+    - 0.3
+    - 0.9
+    - 1.0
+targets:
+  allow:
+    ocr: Allow Paste
+    region:
+    - 0.1
+    - 0.3
+    - 0.9
+    - 1.0
+  deny:
+    ocr: Don't Allow
+status: candidate
+answer: allow
+source: tracer
+note: iOS paste permission over the caption field; candidate until a frame is harvested (manifest xfail)

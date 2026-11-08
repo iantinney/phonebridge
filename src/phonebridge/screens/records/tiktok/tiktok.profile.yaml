@@ -1,0 +1,55 @@
+id: tiktok.profile
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+avoid:
+- - 0.0
+  - 0.9
+  - 1.0
+  - 1.0
+- - 0.0
+  - 0.04
+  - 1.0
+  - 0.13
+match:
+  ocr_any:
+  - Add bio
+  - Followers
+  - Likes
+  - Following
+  - Complete your profile
+  - Edit profile
+  at_least: 3
+  ocr_in:
+    Followers:
+    - 0.2
+    - 0.1
+    - 0.45
+    - 0.35
+  ocr_none:
+  - Settings and privacy
+  - For You
+  - Message
+targets:
+  menu:
+    region:
+    - 0.86
+    - 0.04
+    - 1.0
+    - 0.13
+  home_tab:
+    region:
+    - 0.0
+    - 0.9
+    - 0.2
+    - 0.97
+next:
+  menu:
+  - tiktok.menu
+  home_tab:
+  - tiktok.feed
+way_out:
+- home_tab
+status: confirmed
+source: tracer
+note: ' | 10-19 (lane surfaces): vetoes ''Message'' — another creator''s profile (tiktok.profile.other, real frame
+  of a chess creator, 07:38Z) reads the same counts and scored 0.57 here vs 0.78 there, under the 0.25 margin.'

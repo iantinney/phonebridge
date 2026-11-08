@@ -1,0 +1,23 @@
+id: tiktok.stop.composer
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+kind: stop
+match:
+  ocr_any:
+  - Add comment...
+  - Add comment
+  - Reply to
+  at_least: 1
+  ocr_in:
+    '123':
+    - 0.0
+    - 0.84
+    - 0.22
+    - 0.94
+status: candidate
+stop_reason: composer
+source: surfaces
+note: 'The comment composer (keyboard up under "Add comment..." / "Reply to …"): a stop until comments are enabled
+  (Overnight grill: drafts go to the operator first). Not captured (orchestrator: no keyboard captures); mock fixture: the
+  10-19 comments frame + the iOS keyboard as Vision reads it (corpus retired draft: single letters + ''123'' at
+  0.889 h).'

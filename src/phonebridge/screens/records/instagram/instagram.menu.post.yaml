@@ -1,0 +1,27 @@
+id: instagram.menu.post
+platform: instagram
+bundle: com.burbn.instagram
+appearance: any
+match:
+  ocr_any:
+  - Not interested
+  - Interested
+  - Why you're seeing this post
+  - About this account
+  - Add to favorites
+  - Unfollow
+  - Hide
+  - Report
+  at_least: 3
+targets:
+  not_interested:
+    ocr: Not interested
+next:
+  not_interested:
+  - instagram.home
+way_out:
+- swipe
+status: candidate
+source: surfaces
+note: 'A feed post''s ⋯ menu: Interested / Not interested (the rare AGAINST action), Why you''re seeing this post,
+  About this account, Add to favorites, Unfollow (avoid), Hide, Report. Research candidate, mock fixture.'

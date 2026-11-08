@@ -1,0 +1,18 @@
+id: instagram.stop.action_block
+platform: instagram
+bundle: com.burbn.instagram
+kind: stop
+appearance: any
+match:
+  ocr_any:
+  - Action Blocked
+  - action blocked
+  - temporarily blocked from performing this action
+  - We limit how often
+  - Try again later
+  - Try Again Later
+  at_least: 1
+status: confirmed
+stop_reason: action_block
+source: PT
+note: config/pacing.toml [<platform>.stop] texts (PT), verbatim; one matching rule (SCR-11)

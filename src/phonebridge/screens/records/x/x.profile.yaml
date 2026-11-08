@@ -1,0 +1,36 @@
+id: x.profile
+platform: x
+bundle: com.atebits.Tweetie2
+appearance: any
+avoid:
+- [0.55, 0.04, 1.0, 0.12]
+- [0.8, 0.82, 1.0, 0.95]
+- [0.0, 0.9, 1.0, 1.0]
+match:
+  ocr_any: [Posts, '+']
+  at_least: 2
+  ocr_in:
+    Posts: [0.0, 0.05, 0.6, 0.7]
+    '+': [0.84, 0.82, 0.97, 0.95]
+  ocr_none: [Post your reply, 1x]
+targets:
+  follow_button:
+    ocr: Follow
+    region: [0.5, 0.04, 1.0, 0.62]
+  back:
+    region: [0.055, 0.07, 0.125, 0.108]
+checks:
+  follow_state: {following: [Following], not_following: [Follow, Follow back], own: [Edit profile]}
+next:
+  back: [x.home, x.post]
+way_out: [back]
+status: candidate
+source: surfaces
+evidence:
+- evidence/surfaces-capture/x-20261019T062643Z (05-10)
+note: 'Another account''s profile (expanded: banner, name, @handle, bio, "Joined …", "45 Following 231.5K Followers",
+  Message + Follow; scrolled: the pinned collapsed header "Name / 12.9K posts" with ← ⋯ Follow, then the "Posts" tab
+  row), and the compose "+" (0.90 w, 0.858 h): IG/TikTok profiles read "posts" too. X IGNORES the iOS edge swipe here (06:26Z frames 07-10): leave by the ← at (0.090 w, 0.089 h), pinned in both
+  states. follow_state reads the button text (never tapped; the collapsed header''s Follow sits in the avoid zone). | 10-19 (surfaces5): follow_button = the exact word ''Follow'' in the header: expanded (0.74 w, 0.564 h, white pill) or pinned
+  (0.84 w, 0.09 h, dark pill). feedmaps.follow_state(''x'', ...) reads the state either way
+  (Following = outlined dark pill, words ''Following''). The pinned header''s Follow is still in the avoid zone. | 10-20 (surfaces6): X writes are allowed now: follow_button is live data (feedmaps x_follow_button: profiles only, never the feed''s Who-to-follow cards); the Following side is still synthetic.'

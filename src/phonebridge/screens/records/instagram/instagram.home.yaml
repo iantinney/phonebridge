@@ -1,0 +1,121 @@
+id: instagram.home
+platform: instagram
+bundle: com.burbn.instagram
+appearance: dark
+avoid:
+- - 0.0
+  - 0.04
+  - 1.0
+  - 0.13
+- - 0.0
+  - 0.88
+  - 1.0
+  - 1.0
+header:
+- 0.08
+- 0.26
+- 0.8
+- 0.33
+chrome:
+- - 0.0
+  - 0.0
+  - 1.0
+  - 0.05
+- - 0.0
+  - 0.88
+  - 1.0
+  - 1.0
+match:
+  ocr_none:
+  - New post
+  - New reel
+  - Settings and activity
+  - Edit profile
+  - followers
+  - Message
+  templates:
+  - name: home_tab_active
+    file: instagram/home_tab_active.png
+    region:
+    - 0.0
+    - 0.88
+    - 0.25
+    - 0.98
+    min_score: 0.93
+targets:
+  create:
+    template: instagram/create.png
+    region:
+    - 0.0
+    - 0.04
+    - 0.16
+    - 0.13
+    fallback:
+    - 0.072
+    - 0.086
+  home_tab:
+    region:
+    - 0.0
+    - 0.9
+    - 0.2
+    - 0.97
+  story_ring:
+    region:
+    - 0.285
+    - 0.12
+    - 0.52
+    - 0.23
+  reels_tab:
+    region:
+    - 0.2
+    - 0.9
+    - 0.4
+    - 0.97
+  search_tab:
+    region:
+    - 0.6
+    - 0.9
+    - 0.8
+    - 0.97
+  profile_tab:
+    region:
+    - 0.8
+    - 0.9
+    - 1.0
+    - 0.97
+next:
+  story_ring:
+  - instagram.stories
+  reels_tab:
+  - instagram.reels
+  create:
+  - instagram.new_post.picker
+  - instagram.new_reel.picker
+  profile_tab:
+  - instagram.profile
+  search_tab:
+  - instagram.search
+popups:
+- ios.allow_paste
+way_out:
+- home
+timeout_s: 12.0
+status: confirmed
+source: tracer
+note: 'home = the ACTIVE home-tab icon (template, score ≥0.93; profile/grid/alert-dimmed ≤0.88) with no content
+  words, so a scrolled post from a followed account still reads as home (controller-verify residual on 6152f6c).
+  ocr_none vetoes a profile pushed from the feed (followers / Message / Edit profile) — whether the home icon stays
+  filled there is untested: harvest one. Needs pixels: OCR-only callers get unknown here. | header zone: the first
+  visible post card''s author line when unscrolled (measured 0.29 h; the story tray sits at 0.24, ''Suggested for
+  you'' at 0.31); the x range stops before the Follow button | 10-19 (lane surfaces): chrome declared (the top band,
+  then the tab bar) so appearance is judged by dark-pixel share there: a lightly scrolled home whose story tray
+  fills the band (06:48Z frame 02: mean 94, dark share 0.34) is dark, the gates'' swap/inverted confusers (≤ 0.01)
+  are not; the home-tab template still carries the match. | 10-19 (surfaces2): the declared chrome is now the status bar + the tab bar
+  (every band dark by share), not the top band: a scrolled-away top bar leaves a bright photo there (R1 attempts 2 and 4 parked
+  as unknown); the swap confusers leave the status band light (0.54 dark vs 0.91 on real frames). | 10-19 (surfaces4): story_ring = the first friend''s ring in the tray (region = the unscrolled tray, centre
+  0.40 w, 0.175 h on the 06:48Z frame 01; the Your-story tile at 0.10 w is never it; the feedmap resolver ig_story_ring finds
+  it from the handle label 0.07 h below and is the one to prefer: the tray exists only unscrolled). The tab targets reels_tab /
+  search_tab / home_tab / profile_tab were measured on the pixels (icons at 0.10 / 0.30 / 0.50 / 0.70 / 0.90 w, 0.931 h:
+  regions centre 0.10 / 0.30 / 0.70 / 0.90). save_icon is a feedmap resolver (director/feedmaps.py ig_save_icon): the bookmark
+  rides the post''s action row, so no fixed region exists.'
+failures: 2

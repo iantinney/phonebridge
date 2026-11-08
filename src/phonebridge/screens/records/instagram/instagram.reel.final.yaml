@@ -1,0 +1,59 @@
+id: instagram.reel.final
+platform: instagram
+bundle: com.burbn.instagram
+match:
+  ocr_any:
+  - New reel
+  - Write a caption
+  - Add a caption
+  - Tag people
+  - Add location
+  - Audience
+  - Share
+  at_least: 3
+  ocr_in:
+    Share:
+    - 0.0
+    - 0.8
+    - 1.0
+    - 1.0
+  ocr_none:
+  - Recents
+  - Select
+  - Edit video
+  - Rename audio
+  - Edit cover
+targets:
+  caption:
+    ocr_any:
+    - Write a caption
+    - Add a caption
+  share:
+    ocr: Share
+    region:
+    - 0.0
+    - 0.8
+    - 1.0
+    - 1.0
+    irreversible: true
+  back:
+    region:
+    - 0.0
+    - 0.04
+    - 0.16
+    - 0.13
+next:
+  share:
+  - instagram.home
+  - instagram.profile
+  back:
+  - instagram.reel.editor
+way_out:
+- back
+- back
+- close
+timeout_s: 20.0
+status: candidate
+source: tracer
+note: 'candidate until live frames exist: tracer never reached the share screen (stopped at the picker). The engine
+  refuses the irreversible tap from a candidate.'

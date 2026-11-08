@@ -1,0 +1,34 @@
+id: x.home.tabs
+platform: x
+bundle: com.atebits.Tweetie2
+appearance: any
+avoid:
+- [0.0, 0.04, 1.0, 0.16]
+- [0.0, 0.9, 1.0, 1.0]
+- [0.8, 0.82, 1.0, 0.95]
+- [0.9, 0.16, 1.0, 0.9]
+match:
+  ocr_all: [For you, Following]
+  ocr_in:
+    For you: [0.0, 0.11, 0.4, 0.16]
+    Following: [0.25, 0.11, 0.7, 0.16]
+  ocr_none: ['+', Posts, Post your reply, 1x]
+targets:
+  for_you_tab:
+    ocr: For you
+    region: [0.0, 0.11, 0.4, 0.16]
+  following_tab:
+    ocr: Following
+    region: [0.25, 0.11, 0.7, 0.16]
+next:
+  following_tab: [x.home]
+  for_you_tab: [x.home]
+way_out: [home]
+status: candidate
+source: surfaces
+evidence:
+- evidence/surfaces-capture/x_handle-20261019T071457Z (03)
+note: 'X home timeline read from its top tabs ("For you" and "Following" in the tab row) when OCR misses the compose
+  "+" (x_handle 03-for_you, fast and accurate level: the FAB was not read). x.home carries the "+"; a bare "+" here
+  is vetoed so the two never both match (a margin tie reads unknown). Same avoid zones and veto words as x.home;
+  a profile has neither tab in these regions. 10-19 (surfaces3).'

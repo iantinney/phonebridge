@@ -1,0 +1,17 @@
+id: instagram.stop.restricted
+platform: instagram
+bundle: com.burbn.instagram
+kind: stop
+appearance: any
+match:
+  ocr_any:
+  - Features you can't use
+  - can't be recommended
+  - Your account has been restricted
+  - Your account was disabled
+  - We've disabled your account
+  at_least: 1
+status: confirmed
+stop_reason: restricted
+source: PT
+note: config/pacing.toml [<platform>.stop] texts (PT), verbatim; one matching rule (SCR-11)

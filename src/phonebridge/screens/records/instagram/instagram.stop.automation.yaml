@@ -1,0 +1,13 @@
+id: instagram.stop.automation
+platform: instagram
+bundle: com.burbn.instagram
+kind: stop
+appearance: any
+match:
+  ocr_any:
+  - We suspect automated behavior
+  at_least: 1
+status: confirmed
+stop_reason: warning
+source: PT
+note: config/pacing.toml [<platform>.stop] texts (PT), verbatim; one matching rule (SCR-11)

@@ -1,0 +1,50 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>phonebridge measure</title>
+<style>
+  html, body { margin: 0; background: #fff; font-family: -apple-system, sans-serif; }
+  body { height: 600vh; }  /* room to scroll with flicks */
+  #target { position: fixed; left: 50%; top: 22%; width: 180px; height: 90px; margin-left: -90px; background: #1b6ef3;
+            color: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  #text { position: fixed; left: 5%; top: 36%; width: 90%; height: 70px; font-size: 18px; box-sizing: border-box; }
+  #status { position: fixed; left: 0; right: 0; bottom: 8px; text-align: center; color: #999; font-size: 13px; }
+  .band { height: 100vh; border-top: 1px solid #ddd; color: #ccc; font-size: 40px; padding: 10px; }
+</style></head>
+<body>
+<div id="target">TARGET</div>
+<textarea id="text" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea>
+<div id="status">phonebridge measure</div>
+<div class="band" style="margin-top: 55vh">1</div><div class="band">2</div><div class="band">3</div>
+<div class="band">4</div><div class="band">5</div>
+<script>
+const events = [];
+const dpr = window.devicePixelRatio || 1;
+const rect = id => { const r = document.getElementById(id).getBoundingClientRect(); return {x: r.left, y: r.top, w: r.width, h: r.height}; };
+function push(e) { events.push({t: performance.now(), ...e}); }
+function touches(ev) { return [...ev.changedTouches].map(t => ({id: t.identifier, x: t.clientX, y: t.clientY})); }
+for (const kind of ["touchstart", "touchmove", "touchend", "touchcancel"]) {
+  document.addEventListener(kind, ev => push({e: kind, p: touches(ev), scroll: window.scrollY}), {passive: true});
+}
+document.getElementById("target").addEventListener("touchstart", ev => ev.preventDefault(), {passive: false});  // no scroll from the target
+document.addEventListener("scroll", () => push({e: "scroll", y: window.scrollY}), {passive: true});
+const ta = document.getElementById("text");
+document.addEventListener("keydown", ev => push({e: "keydown", k: ev.key, in: ev.target === ta ? "text" : (ev.target.id || ev.target.tagName)}));
+document.addEventListener("keyup", ev => push({e: "keyup", k: ev.key}));
+ta.addEventListener("input", () => push({e: "input", v: ta.value}));
+let sent = 0;
+function flush() {
+  const hello = {e: "hello", dpr, w: window.innerWidth, h: window.innerHeight, target: rect("target"), text: rect("text"),
+                 scroll: window.scrollY, ua: navigator.userAgent, active: document.activeElement && document.activeElement.id};
+  const batch = events.slice(sent);
+  sent = events.length;
+  fetch("/log", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({hello, events: batch})})
+    .then(r => r.json()).then(j => {
+      document.getElementById("status").textContent = `logged ${sent} · ${new Date().toLocaleTimeString()}`;
+      if (j.clear) { ta.value = ""; }
+      if (j.focus) { ta.focus(); }
+      if (j.reset) { window.scrollTo(0, 0); }
+    }).catch(() => {});
+}
+setInterval(flush, 400);
+</script>
+</body></html>

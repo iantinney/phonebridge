@@ -1,0 +1,30 @@
+id: instagram.camera_access
+platform: instagram
+bundle: com.burbn.instagram
+match:
+  ocr_any:
+  - Allow Instagram to access
+  - your camera and microphone
+  - How you'll use this
+  - Continue
+  at_least: 2
+  ocr_in:
+    Continue:
+    - 0.25
+    - 0.85
+    - 0.75
+    - 1.0
+targets:
+  continue_:
+    ocr: Continue
+    region:
+    - 0.0
+    - 0.8
+    - 1.0
+    - 1.0
+way_out:
+- back
+status: confirmed
+source: tracer
+note: IG's own pre-prompt before the iOS camera alert; Continue leads to ios.alert (parks). Reached by the picker's
+  camera tile.

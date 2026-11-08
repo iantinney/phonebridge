@@ -1,0 +1,13 @@
+id: reddit.stop.verification
+platform: reddit
+bundle: com.reddit.Reddit
+kind: stop
+appearance: any
+match:
+  ocr_any:
+  - Verify your email
+  at_least: 1
+status: confirmed
+stop_reason: verification
+source: PT
+note: config/pacing.toml [<platform>.stop] texts (PT), verbatim; one matching rule (SCR-11)

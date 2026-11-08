@@ -1,0 +1,21 @@
+id: instagram.stop.verification
+platform: instagram
+bundle: com.burbn.instagram
+kind: stop
+appearance: any
+match:
+  ocr_any:
+  - Confirm it's you
+  - Confirm Your Identity
+  - Help us confirm
+  - Suspicious login
+  - Suspicious login attempt
+  - Was this you
+  - This wasn't me
+  - Enter the confirmation code
+  - Enter the code
+  at_least: 1
+status: confirmed
+stop_reason: verification
+source: PT
+note: config/pacing.toml [<platform>.stop] texts (PT), verbatim; one matching rule (SCR-11)

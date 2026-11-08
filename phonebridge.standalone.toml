@@ -1,0 +1,14 @@
+# A single-host setup (what `phonebridge setup` writes). Copy to ~/.config/phonebridge/phonebridge.toml and
+# replace the placeholder UDID with one from `phonebridge devices`.
+# Keep an existing deployment's config intact; this is a separate setup example.
+
+[devices.phone]
+udid = "00000000-0000000000000000"
+supervision = "read-only"
+
+[lease]
+cmd = ["phonebridge-local-lease"]
+enforce = true
+
+[policy]
+urls = ["https://*"]

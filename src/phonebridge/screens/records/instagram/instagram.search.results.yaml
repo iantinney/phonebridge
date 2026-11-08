@@ -1,0 +1,31 @@
+id: instagram.search.results
+platform: instagram
+bundle: com.burbn.instagram
+appearance: any
+match:
+  ocr_any:
+  - For you
+  - Accounts
+  - Reels
+  - Audio
+  - Tags
+  - Places
+  at_least: 4
+  ocr_none:
+  - Search with Meta AI
+targets:
+  back:
+    region:
+    - 0.0
+    - 0.04
+    - 0.1
+    - 0.09
+next:
+  back:
+  - instagram.home
+way_out:
+- back
+status: candidate
+source: surfaces
+note: 'Search results after a query: For you / Accounts / Reels / Audio / Tags / Places tabs. Research candidate,
+  mock fixture (search designed-only tonight). The pre-query explore grid is the learned instagram.screen.instagram_explore_search_grid.'

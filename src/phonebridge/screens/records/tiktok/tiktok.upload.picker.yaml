@@ -1,0 +1,46 @@
+id: tiktok.upload.picker
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+appearance: any
+match:
+  ocr_any:
+  - Recents
+  - Select multiple
+  - All
+  - Videos
+  - Photos
+  - Live Photos
+  - All Videos
+  - Videos Photos
+  at_least: 3
+  ocr_none:
+  - Everyone can view this post
+  - Add description
+  - Your Story
+  - Add sound
+targets:
+  next:  # "Next" or "Next (1)" once a video is selected
+    ocr: Next
+    region:
+    - 0.5
+    - 0.85
+    - 1.0
+    - 1.0
+  close:
+    region:
+    - 0.0
+    - 0.04
+    - 0.16
+    - 0.13
+next:
+  next:
+  - tiktok.upload.editor
+  close:
+  - tiktok.create.camera
+way_out:
+- close
+timeout_s: 20.0
+status: candidate
+source: tiktok-lane
+note: 'drafted (no live frame yet). Our clip is picked by its duration label (the publishing flow''s PickVideo: the newest cell
+  whose 00:13 matches), not by a record target.'

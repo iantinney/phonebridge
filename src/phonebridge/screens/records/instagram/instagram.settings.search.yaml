@@ -1,0 +1,36 @@
+id: instagram.settings.search
+platform: instagram
+bundle: com.burbn.instagram
+appearance: dark
+match:
+  ocr_any:
+  - Settings and activity
+  - Cancel
+  - More info and support
+  - About
+  at_least: 2
+  ocr_in:
+    Cancel:
+    - 0.6
+    - 0.1
+    - 1.0
+    - 0.2
+targets:
+  cancel:
+    ocr: Cancel
+    region:
+    - 0.6
+    - 0.1
+    - 1.0
+    - 0.2
+  about_account:
+    ocr: About your account
+next:
+  cancel:
+  - instagram.settings
+  about_account:
+  - instagram.about_account
+way_out:
+- cancel
+status: confirmed
+source: tracer

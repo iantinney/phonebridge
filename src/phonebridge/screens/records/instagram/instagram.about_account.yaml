@@ -1,0 +1,36 @@
+id: instagram.about_account
+platform: instagram
+bundle: com.burbn.instagram
+appearance: dark
+match:
+  ocr_any:
+  - About your profile
+  - About This Account
+  - Date joined
+  - Account based in
+  at_least: 2
+  ocr_in:
+    About your profile:
+    - 0.25
+    - 0.04
+    - 0.75
+    - 0.17
+targets:
+  back:
+    region:
+    - 0.0
+    - 0.04
+    - 0.16
+    - 0.13
+checks:
+  date_joined:
+    ocr_near: Date joined
+next:
+  back:
+  - instagram.settings.search
+  - instagram.settings
+way_out:
+- back
+status: confirmed
+source: tracer
+note: 'read-only: account age for the lifecycle (checks.date_joined)'

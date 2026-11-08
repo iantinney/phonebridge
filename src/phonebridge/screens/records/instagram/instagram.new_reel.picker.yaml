@@ -1,0 +1,52 @@
+id: instagram.new_reel.picker
+platform: instagram
+bundle: com.burbn.instagram
+appearance: dark
+match:
+  ocr_any:
+  - New reel
+  - Templates
+  - Recents
+  - Cancel
+  at_least: 3
+  ocr_in:
+    New reel:
+    - 0.25
+    - 0.04
+    - 0.75
+    - 0.17
+    Cancel:
+    - 0.7
+    - 0.15
+    - 1.0
+    - 0.3
+  ocr_none:
+  - Add a caption
+  - Edit cover
+  - New post
+targets:
+  cancel:
+    ocr: Cancel
+    region:
+    - 0.7
+    - 0.15
+    - 1.0
+    - 0.3
+  newest:
+    region:
+    - 0.05
+    - 0.3
+    - 0.5
+    - 0.55
+next:
+  cancel:
+  - instagram.home
+  - instagram.reels
+  newest:
+  - instagram.reel.editor
+way_out:
+- cancel
+timeout_s: 20.0
+status: confirmed
+source: tracer
+note: the reel gallery (create (+) lands here when the last mode was REEL); picking a tile opens the editor

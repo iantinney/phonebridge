@@ -1,0 +1,45 @@
+id: ios.settings.app
+platform: ios
+bundle: com.apple.Preferences
+appearance: dark
+match:
+  ocr_any:
+  - Allow Instagram to Access
+  - Allow TikTok to Access
+  - Photos
+  - Notifications
+  - Background App Refresh
+  - Cellular Data
+  - Preferred Language
+  - Live Activities
+  at_least: 3
+  ocr_in:
+    Allow Instagram to Access:
+    - 0.0
+    - 0.08
+    - 0.5
+    - 0.3
+  ocr_none:
+  - Photo Library Access
+targets:
+  back:
+    region:
+    - 0.0
+    - 0.04
+    - 0.16
+    - 0.13
+  photos:
+    ocr: Photos
+    region:
+    - 0.0
+    - 0.13
+    - 0.6
+    - 0.5
+next:
+  photos:
+  - ios.settings.photos_access
+way_out:
+- back
+- home
+status: confirmed
+source: tracer

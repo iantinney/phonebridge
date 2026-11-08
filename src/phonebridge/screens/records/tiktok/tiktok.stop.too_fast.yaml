@@ -1,0 +1,17 @@
+id: tiktok.stop.too_fast
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+kind: stop
+appearance: any
+match:
+  ocr_any:
+  - too fast
+  - Too Fast
+  - too frequently
+  - Limit reached
+  - visiting our service too frequently
+  at_least: 1
+status: confirmed
+stop_reason: action_block
+source: PT
+note: config/pacing.toml [<platform>.stop] texts (PT), verbatim; one matching rule (SCR-11)

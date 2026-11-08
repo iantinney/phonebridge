@@ -1,0 +1,214 @@
+{
+  "example": "Export a taught workflow, import it into a fresh install, run it on a new handle",
+  "device": {
+    "model": "iPhone 12",
+    "ios": "27.2"
+  },
+  "native_tested_release": "0af13e4",
+  "run": {
+    "id": "tsk_6a5cbc3b4270",
+    "kind": "taught_run",
+    "state": "done",
+    "started": "2026-11-08T09:38:42+00:00",
+    "finished": "2026-11-08T09:40:10+00:00",
+    "elapsed_seconds": 88
+  },
+  "simulated": false,
+  "initiation": "HTTP API in a fresh installation on the maintainer Mac; not a browser-initiated run.",
+  "demonstration": {
+    "recorded_by": "agent",
+    "profile": "natgeo",
+    "source": "Recorded journal, screenshots and touch points; unreliable video timing was not used."
+  },
+  "workflow_import": "The unchanged portable JSON was imported and confirmed through this installation's own API.",
+  "handle": "apple",
+  "human_interventions_during_run": 0,
+  "displayed_counts": {
+    "posts": "1,413",
+    "followers": "38.1M",
+    "following": "9"
+  },
+  "observed_at": "2026-11-08T09:40:10+00:00",
+  "source_frame_id": "frm_a28b82fd1d16",
+  "source_frame_sha256": "f1411227bc00100acd2520dd7e3760a037763c641ffc8ac9a85d1dc54869b0a3",
+  "source_frame_bytes": 287371,
+  "workflow_sha256": "3c7c246e8bdf8986b1055358e68fcd50c47ef32f6ba6963021cfaefcf4f8c805",
+  "inputs": [
+    {
+      "at": "2026-11-08T09:38:57+00:00",
+      "kind": "tap",
+      "action": "Navigate back to the workflow start screen",
+      "phase": "start",
+      "step": null,
+      "point": [
+        0.065,
+        0.082
+      ],
+      "elapsed_since_previous_input_ms": 4075
+    },
+    {
+      "at": "2026-11-08T09:39:05+00:00",
+      "kind": "tap",
+      "action": "Navigate back to the workflow start screen",
+      "phase": "start",
+      "step": null,
+      "point": [
+        0.065,
+        0.082
+      ],
+      "elapsed_since_previous_input_ms": 4897
+    },
+    {
+      "at": "2026-11-08T09:39:12+00:00",
+      "kind": "tap",
+      "action": "Open the operator profile to verify the signed-in account",
+      "phase": "start",
+      "step": null,
+      "point": [
+        0.9,
+        0.931
+      ],
+      "elapsed_since_previous_input_ms": 3839
+    },
+    {
+      "at": "2026-11-08T09:39:22+00:00",
+      "kind": "tap",
+      "action": "Tap the Search tab",
+      "phase": "taught",
+      "step": 1,
+      "point": [
+        0.7,
+        0.931
+      ],
+      "elapsed_since_previous_input_ms": 6092
+    },
+    {
+      "at": "2026-11-08T09:39:30+00:00",
+      "kind": "tap",
+      "action": "Tap the search field",
+      "phase": "taught",
+      "step": 2,
+      "point": [
+        0.306,
+        0.0841
+      ],
+      "elapsed_since_previous_input_ms": 4822
+    },
+    {
+      "at": "2026-11-08T09:39:38+00:00",
+      "kind": "type",
+      "action": "Type the supplied handle",
+      "phase": "taught",
+      "step": 4,
+      "point": null,
+      "elapsed_since_previous_input_ms": 6788
+    },
+    {
+      "at": "2026-11-08T09:39:47+00:00",
+      "kind": "tap",
+      "action": "Tap the result row for the supplied handle",
+      "phase": "taught",
+      "step": 5,
+      "point": [
+        0.4429,
+        0.1698
+      ],
+      "elapsed_since_previous_input_ms": 5717
+    },
+    {
+      "at": "2026-11-08T09:39:56+00:00",
+      "kind": "tap",
+      "action": "Tap the Profiles chip",
+      "phase": "taught",
+      "step": 6,
+      "point": [
+        0.3085,
+        0.1418
+      ],
+      "elapsed_since_previous_input_ms": 6005
+    },
+    {
+      "at": "2026-11-08T09:40:06+00:00",
+      "kind": "tap",
+      "action": "Tap the profile row for the supplied handle",
+      "phase": "taught",
+      "step": 7,
+      "point": [
+        0.4429,
+        0.2224
+      ],
+      "elapsed_since_previous_input_ms": 5773
+    }
+  ],
+  "taught_pauses_ms": [
+    {
+      "step": 1,
+      "taught_ms": 410,
+      "drawn_ms": 600
+    },
+    {
+      "step": 2,
+      "taught_ms": 950,
+      "drawn_ms": 600
+    },
+    {
+      "step": 4,
+      "taught_ms": 2360,
+      "drawn_ms": 1450
+    },
+    {
+      "step": 5,
+      "taught_ms": 1230,
+      "drawn_ms": 1250
+    },
+    {
+      "step": 6,
+      "taught_ms": 1040,
+      "drawn_ms": 1050
+    },
+    {
+      "step": 7,
+      "taught_ms": 1380,
+      "drawn_ms": 1380
+    }
+  ],
+  "accurate_read_steps": [
+    {
+      "at": "2026-11-08T09:40:10+00:00",
+      "frame_id": "frm_a28b82fd1d16",
+      "data": {
+        "items": 23,
+        "age_ms": null,
+        "screen": null,
+        "accurate": true
+      }
+    }
+  ],
+  "outside_users": 0,
+  "limits": [
+    "Founder-operated validation on one phone and one Mac; not a reliability benchmark.",
+    "Only Instagram profile checks are supported by the taught alpha.",
+    "Demonstration and its pauses came from an agent, not a person.",
+    "Counts are the rounded values displayed in the app, not exact analytics.",
+    "Searches remain in recent-search history; this task viewed a public profile.",
+    "Apple is an observed public account, not a customer or endorsement.",
+    "The system tunnel service remained running while this installation used its own userspace tunnel.",
+    "The unmodified source frame and account-verification logs remain private. The public image is a labelled header excerpt."
+  ],
+  "source_frame_dimensions": {
+    "width": 1170,
+    "height": 2532
+  },
+  "public_excerpt": {
+    "file": "profile-header.png",
+    "crop_pixels": {
+      "x": 0,
+      "y": 0,
+      "width": 1170,
+      "height": 580
+    },
+    "sha256": "9f70f3241b6de67576030dc5af0e2ece93d885695dbb40ffba559ab5e44ed85d",
+    "method": "Browser viewport capture of the unscaled original image; header only. No text or pixels added.",
+    "reason": "Personalized social context beneath the counts is omitted; full original retained privately."
+  }
+}

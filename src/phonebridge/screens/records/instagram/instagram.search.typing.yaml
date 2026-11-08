@@ -1,0 +1,68 @@
+id: instagram.search.typing
+platform: instagram
+bundle: com.burbn.instagram
+appearance: any
+match:
+  templates:
+  - name: search_field_start
+    file: instagram/ig_search_field_start.png
+    region:
+    - 0.0
+    - 0.06
+    - 0.25
+    - 0.115
+    min_score: 0.96
+  - name: keyboard_123
+    file: instagram/ig_keyboard_123.png
+    region:
+    - 0.0
+    - 0.84
+    - 0.2
+    - 0.95
+    min_score: 0.95
+  ocr_none:
+  - Accounts
+  - Audio
+  - Places
+  - Add comment...
+  - New reel
+  - New post
+  - Templates
+  - Recents
+  - Next
+targets:
+  search_field:
+    region:
+    - 0.0
+    - 0.05
+    - 0.8
+    - 0.12
+  back:
+    region:
+    - 0.0
+    - 0.06
+    - 0.12
+    - 0.11
+next:
+  type:
+  - instagram.search.typing
+  back:
+  - instagram.screen.instagram_explore_search_grid
+way_out:
+- back
+evidence:
+- 'live 2026-11-08 (iPhone 12, iOS 27.2, Instagram 454): frm_5ed6d345a92a, frm_ee71f967bbd6, frm_c533647aca46 (task
+  tsk_dccf35570abb); demo 20261108T063217Z frames 006, 007 (private, not in git)'
+status: candidate
+source: surfaces
+note: 'Instagram 454''s focused search field with the keyboard up (11-08, from real frames): the back chevron at the top
+  left (no Cancel in 454), the search bar right of it (empty: the "Search with Meta AI" placeholder, which the fast OCR
+  misreads, e.g. "Ci bearch with Meta Al"; or a typed query), Recent or matching rows under it, the iOS keyboard below.
+  Matched by two templates, both required: search_field_start = the bar''s rounded start and its search glyph (it means
+  "an Instagram search bar": 0.97-0.99 on every IG search bar, Explore included; best non-search frame 0.943) and
+  keyboard_123 = the keyboard''s 123 key (0.966-0.969 with the keyboard up; at most 0.927 elsewhere), so a missed key row
+  in the OCR can''t hide the keyboard. Not typing, on purpose: the focused bar with the keyboard dismissed (demo 015), a
+  typed query''s results with the keyboard down (demo 008, 016), Explore, keyword pages, composers. Margins are about
+  0.02: don''t lower the thresholds. Not covered by any stored frame: a keyboard in another context (DM, comment), a
+  light-mode keyboard (fails closed). Offline: tw-phone + tw-verifier on 51 stored frames, OCR as stored and keys
+  dropped; typed query with the keyboard up checked on composites only. back = the chevron (0.065 w, 0.082 h).'

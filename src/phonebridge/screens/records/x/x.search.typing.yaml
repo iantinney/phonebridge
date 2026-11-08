@@ -1,0 +1,40 @@
+id: x.search.typing
+platform: x
+bundle: com.atebits.Tweetie2
+appearance: any
+match:
+  ocr_all:
+  - Cancel
+  ocr_any:
+  - space
+  - search
+  - Search for
+  at_least: 1
+  ocr_none:
+  - Post your reply
+  - Posts
+  - Trending
+targets:
+  search_field:
+    region:
+    - 0.1
+    - 0.04
+    - 0.8
+    - 0.11
+  cancel:
+    ocr: Cancel
+    region:
+    - 0.75
+    - 0.04
+    - 1.0
+    - 0.11
+next:
+  type:
+  - x.search.typing
+way_out:
+- cancel
+status: candidate
+source: task-agent
+note: 'Designed (lane task-agent 10-20), NOT from a real frame: X search with the keyboard up, Cancel right of the field;
+  typing lists accounts (the name, "@handle" under it): the row whose OCR is the typed handle opens x.profile. Surfaces:
+  replace with a captured frame.'

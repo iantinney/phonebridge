@@ -1,0 +1,21 @@
+id: instagram.stop.composer
+platform: instagram
+bundle: com.burbn.instagram
+kind: stop
+match:
+  ocr_any:
+  - What do you think of this?
+  - Add a comment
+  - Reply to
+  at_least: 1
+  ocr_in:
+    '123':
+    - 0.0
+    - 0.84
+    - 0.22
+    - 0.94
+status: candidate
+stop_reason: composer
+source: surfaces
+note: 'The comment composer (keyboard up): a stop until comments are enabled. Mock fixture (the 10-19 comments frame
+  + the iOS keyboard as Vision reads it).'

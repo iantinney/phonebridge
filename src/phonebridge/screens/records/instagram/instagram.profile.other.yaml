@@ -1,0 +1,73 @@
+id: instagram.profile.other
+platform: instagram
+bundle: com.burbn.instagram
+appearance: any
+avoid:
+- - 0.0
+  - 0.0
+  - 1.0
+  - 0.04
+- - 0.5
+  - 0.26
+  - 1.0
+  - 0.36
+- - 0.0
+  - 0.9
+  - 1.0
+  - 1.0
+match:
+  ocr_any:
+  - posts
+  - followers
+  - following
+  - Follow
+  - Following
+  - Message
+  - Follow back
+  at_least: 4
+  ocr_all:
+  - Message
+  ocr_none:
+  - Edit profile
+  - Share profile
+  - Settings and activity
+targets:
+  follow_button:
+    ocr_any:
+    - Follow
+    - Follow back
+    - Following
+    - Requested
+    region:
+    - 0.0
+    - 0.26
+    - 0.5
+    - 0.36
+  back:
+    region:
+    - 0.0
+    - 0.05
+    - 0.12
+    - 0.1
+checks:
+  follow_state:
+    following:
+    - Following
+    not_following:
+    - Follow
+    - Follow back
+next:
+  back:
+  - instagram.home
+way_out:
+- back
+status: candidate
+source: surfaces
+note: 'Another account''s profile (from a post header''s handle): posts / followers / following counts, Follow (or
+  Following) + Message (avoid band 0.26-0.36 h). The own profile (instagram.profile) needs Edit profile; this one
+  vetoes it. Research candidate, mock fixture (the 10-19 visit''s profile step never reached it). follow_state reads
+  the button. | Message is required: an own profile minus Edit profile (the gates'' near-miss confuser) reads the
+  same counts. | 10-19 (surfaces5): follow_button is found by the button''s WORDS inside the left half of the button row (0.26-0.36 h), not a
+  fixed point: NO real IG other-profile frame exists yet (only the own profile and mocks), so the row''s y is unmeasured here
+  (own profile: Edit profile row at 0.306 h). feedmaps.follow_state(''instagram'', items, png) reads it (Follow = blue fill). avoid is now the right
+  half (Message, the suggested-accounts chevron). Capture visit instagram_profile (docs/lanes/surfaces-capture-plan-4.md) gives the real frame.'

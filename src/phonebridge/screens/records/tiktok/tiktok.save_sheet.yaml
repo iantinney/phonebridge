@@ -1,0 +1,22 @@
+id: tiktok.save_sheet
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+appearance: any
+match:
+  ocr_any:
+  - Added to Favorites
+  - Saved to Favorites
+  - Add to collection
+  - Manage
+  - Collections
+  - Create new collection
+  at_least: 2
+targets:
+  manage:
+    ocr: Manage
+way_out:
+- swipe
+status: candidate
+source: surfaces
+note: 'After the bookmark (a save, the operator''s ''finds'' on the account): the Favorites toast / collection sheet. Research
+  candidate, mock fixture (no save/unsave capture tonight).'

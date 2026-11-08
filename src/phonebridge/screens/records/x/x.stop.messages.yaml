@@ -1,0 +1,13 @@
+id: x.stop.messages
+platform: x
+bundle: com.atebits.Tweetie2
+kind: stop
+appearance: any
+match:
+  ocr_any: [Search Direct Messages, Message requests, 'Welcome to your inbox!', Start a conversation]
+  at_least: 1
+status: candidate
+stop_reason: messages
+source: surfaces
+note: 'Direct messages / Chat (the bottom bar''s last tab): read-only on X, parks with no gesture. Texts from the X iOS
+  DM screens (not captured); a mock fixture only.'

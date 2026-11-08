@@ -1,0 +1,61 @@
+id: instagram.profile
+platform: instagram
+bundle: com.burbn.instagram
+appearance: dark
+avoid:
+- - 0.0
+  - 0.88
+  - 1.0
+  - 1.0
+- - 0.0
+  - 0.04
+  - 1.0
+  - 0.13
+match:
+  ocr_any:
+  - Edit profile
+  - Share profile
+  - posts
+  - followers
+  - following
+  at_least: 3
+  ocr_in:
+    Edit profile:
+    - 0.05
+    - 0.18
+    - 0.55
+    - 0.45
+  ocr_none:
+  - Settings and activity
+  - New post
+targets:
+  menu:
+    region:
+    - 0.86
+    - 0.05
+    - 1.0
+    - 0.13
+  edit_profile:
+    ocr: Edit profile
+  home_tab:
+    region:
+    - 0.0
+    - 0.9
+    - 0.2
+    - 0.97
+  profile_tab:
+    region:
+    - 0.8
+    - 0.9
+    - 1.0
+    - 0.97
+next:
+  menu:
+  - instagram.settings
+  home_tab:
+  - instagram.home
+way_out:
+- home_tab
+status: confirmed
+source: tracer
+note: menu = the ≡ icon top-right (icon only, region-bounded until a template is cut)

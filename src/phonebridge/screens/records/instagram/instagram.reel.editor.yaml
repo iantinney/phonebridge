@@ -1,0 +1,54 @@
+id: instagram.reel.editor
+platform: instagram
+bundle: com.burbn.instagram
+appearance: any
+match:
+  ocr_any:
+  - Edit video
+  - Audio
+  - Text
+  - Voice
+  - Captions
+  - Overlay
+  - Next
+  - Suggested audio
+  at_least: 4
+  ocr_in:
+    Next:
+    - 0.7
+    - 0.88
+    - 1.0
+    - 1.0
+  ocr_none:
+  - Recents
+  - Write a caption
+  - Add a caption
+targets:
+  next:
+    ocr: Next
+    region:
+    - 0.7
+    - 0.88
+    - 1.0
+    - 1.0
+  close:
+    region:
+    - 0.0
+    - 0.2
+    - 0.15
+    - 0.3
+next:
+  next:
+  - instagram.reel.details
+  - instagram.reel.final
+  close:
+  - instagram.new_reel.picker
+  - instagram.new_post.picker
+  - instagram.home
+popups:
+- instagram.popup.start_over
+way_out:
+- close
+timeout_s: 20.0
+status: confirmed
+source: tracer

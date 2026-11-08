@@ -1,0 +1,63 @@
+id: tiktok.comments
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+appearance: any
+avoid:
+- - 0.75
+  - 0.42
+  - 1.0
+  - 0.93
+- - 0.0
+  - 0.92
+  - 1.0
+  - 1.0
+- - 0.0
+  - 0.33
+  - 1.0
+  - 0.37
+- - 0.0
+  - 0.0
+  - 1.0
+  - 0.32
+match:
+  ocr_any:
+  - comments
+  - Add comment...
+  - Reply
+  at_least: 2
+  ocr_in:
+    comments:
+    - 0.3
+    - 0.3
+    - 0.7
+    - 0.45
+targets:
+  close:
+    ocr: X
+    region:
+    - 0.88
+    - 0.37
+    - 0.98
+    - 0.42
+  grabber:
+    region:
+    - 0.4
+    - 0.355
+    - 0.6
+    - 0.38
+next:
+  close:
+  - tiktok.feed
+  grabber:
+  - tiktok.feed
+way_out:
+- close
+evidence:
+- evidence/surfaces-capture/tiktok-20261019T065927Z (02-03)
+status: candidate
+source: surfaces
+note: 'The comments sheet over a For You video (10-19 06:59Z, real): the search chip (0.35 h), "340 comments" title
+  (0.395 h) with ✕ at (0.932 w, 0.396 h), comments with Reply / View N replies, each with a heart + count and a
+  👎 at 0.83-0.86 w (avoid: likes/dislikes are writes), "Add comment..." bar at 0.944 h (avoid: opens the composer,
+  a stop). Closed live by a slow drag from the grabber (0.369 h → 0.908 h, 425 ms); the ✕ is the other way out.
+  The dimmed video above (0-0.32 h) is avoided.'

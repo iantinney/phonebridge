@@ -1,0 +1,80 @@
+{
+  "example": "Native Instagram profile check",
+  "device": {
+    "model": "iPhone 12",
+    "ios": "27.2"
+  },
+  "run": {
+    "id": "tsk_5332aad57871",
+    "kind": "account_check",
+    "state": "done",
+    "started": "2026-11-08T07:23:04+00:00",
+    "finished": "2026-11-08T07:24:17+00:00"
+  },
+  "simulated": false,
+  "provenance": "Founder-operated validation of a standalone export, fresh Python environment and app state on the maintainer Mac. Existing paired device and system tunnel. HTTP initiation; no browser initiation claimed.",
+  "handle": "natgeo",
+  "observed_at": "2026-11-08T07:24:16+00:00",
+  "displayed_counts": {
+    "posts": "32.1K",
+    "followers": "268M",
+    "following": "195"
+  },
+  "source_frame_id": "frm_09993e48c13a",
+  "source_frame_sha256": "b0ac0df732be34fc4c69edf368c0968645780067dc414c072459c96e5b043a5f",
+  "inputs": [
+    {
+      "at": "2026-11-08T07:23:18+00:00",
+      "kind": "tap",
+      "action": "Back (typing)"
+    },
+    {
+      "at": "2026-11-08T07:23:25+00:00",
+      "kind": "tap",
+      "action": "Tap the Profile tab"
+    },
+    {
+      "at": "2026-11-08T07:23:33+00:00",
+      "kind": "tap",
+      "action": "Tap the Search tab"
+    },
+    {
+      "at": "2026-11-08T07:23:41+00:00",
+      "kind": "tap",
+      "action": "Tap the search field"
+    },
+    {
+      "at": "2026-11-08T07:23:47+00:00",
+      "kind": "type",
+      "action": "Type natgeo"
+    },
+    {
+      "at": "2026-11-08T07:23:56+00:00",
+      "kind": "tap",
+      "action": "Open natgeo"
+    },
+    {
+      "at": "2026-11-08T07:24:03+00:00",
+      "kind": "tap",
+      "action": "Tap the Profiles chip"
+    },
+    {
+      "at": "2026-11-08T07:24:12+00:00",
+      "kind": "tap",
+      "action": "Open natgeo"
+    },
+    {
+      "at": "2026-11-08T07:24:17+00:00",
+      "kind": "tap",
+      "action": "Back to the Home Screen"
+    }
+  ],
+  "outside_users": 0,
+  "notes": [
+    "Counts are rounded values displayed by Instagram, not exact analytics.",
+    "One observed public profile, not a controlled customer account.",
+    "Searches leave recent-search history.",
+    "This example is a native account check, not a taught workflow rerun.",
+    "Private account-verification frames and notes are omitted from this public excerpt."
+  ]
+}

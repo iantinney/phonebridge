@@ -1,0 +1,37 @@
+id: tiktok.safety_center
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+match:
+  ocr_any:
+  - Safety Center
+  - Safety tools
+  - Report records
+  - Safety courses
+  - Our Approach
+  at_least: 2
+  ocr_in:
+    Safety Center:
+    - 0.1
+    - 0.04
+    - 0.5
+    - 0.2
+  ocr_none:
+  - How can we help?
+targets:
+  back:
+    region:
+    - 0.0
+    - 0.04
+    - 0.16
+    - 0.13
+  account_status:
+    ocr: Account status
+next:
+  back:
+  - tiktok.help
+  account_status:
+  - tiktok.account_status
+way_out:
+- back
+status: confirmed
+source: tracer

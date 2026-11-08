@@ -1,0 +1,20 @@
+id: tiktok.stop.account_status
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+kind: stop
+appearance: any
+match:
+  ocr_any:
+  - Account status
+  - violated our Community Guidelines
+  - Community Guidelines violation
+  - not recommended
+  - permanently banned
+  - Your account was banned
+  - temporarily suspended
+  at_least: 2
+status: confirmed
+stop_reason: restricted
+source: PT
+note: config/pacing.toml [<platform>.stop] texts (PT), verbatim; one matching rule (SCR-11); 'Account status' alone
+  also names the Safety Center row and help pages (tracer's frames), so it needs one violation phrase beside it

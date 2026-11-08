@@ -1,0 +1,70 @@
+id: instagram.reel.details
+platform: instagram
+bundle: com.burbn.instagram
+appearance: dark
+match:
+  ocr_any:
+  - New reel
+  - Edit cover
+  - Add a caption
+  - Tag people
+  - Add location
+  - Rename audio
+  - Save draft
+  - Hashtags
+  at_least: 4
+  ocr_in:
+    New reel:
+    - 0.25
+    - 0.04
+    - 0.75
+    - 0.17
+  ocr_none:
+  - Recents
+  - Templates
+  - Edit video
+  - Keep editing
+targets:
+  caption:
+    ocr_any:
+    - Add a caption
+    - Write a caption
+  save_draft:
+    ocr: Save draft
+    region:
+    - 0.0
+    - 0.85
+    - 0.5
+    - 1.0
+  next:
+    ocr: Next
+    region:
+    - 0.5
+    - 0.85
+    - 1.0
+    - 1.0
+    irreversible: true
+  back:
+    region:
+    - 0.0
+    - 0.04
+    - 0.16
+    - 0.13
+next:
+  next:
+  - instagram.reel.final
+  - instagram.home
+  - instagram.profile
+  back:
+  - instagram.reel.editor
+popups:
+- instagram.popup.start_over
+way_out:
+- back
+- back
+- cancel
+timeout_s: 20.0
+status: confirmed
+source: tracer
+note: 'caption/tags/audio page; its bottom-right Next is treated as irreversible until a rehearsal shows the page
+  behind it (no Share on this page: tracer 05-calibrate/06-share)'

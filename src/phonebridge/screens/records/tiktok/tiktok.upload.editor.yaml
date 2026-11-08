@@ -1,0 +1,66 @@
+id: tiktok.upload.editor
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+appearance: any
+match:
+  ocr_any:  # a chosen sound replaces "Add sound" with its title; the other live anchors remain
+  - Add sound
+  - Aa
+  - Your Story
+  - Story 24h
+  - AutoCut
+  - Next
+  at_least: 3
+  ocr_in:
+    Next:
+    - 0.5
+    - 0.88
+    - 1.0
+    - 1.0
+  ocr_none:
+  - Recents
+  - Select multiple
+  - Everyone can view this post
+  - Add description
+  - Drafts
+targets:
+  next:
+    ocr: Next
+    region:
+    - 0.5
+    - 0.88
+    - 1.0
+    - 1.0
+  your_story:  # publishes a Story at once: never part of a video post
+    ocr_any:
+    - Your Story
+    - Story 24h
+    region:
+    - 0.0
+    - 0.88
+    - 0.5
+    - 1.0
+    irreversible: true
+  back:
+    region:
+    - 0.0
+    - 0.04
+    - 0.16
+    - 0.13
+next:
+  next:
+  - tiktok.post.final
+  back:
+  - tiktok.popup.discard
+  - tiktok.upload.picker
+  - tiktok.create.camera
+popups:
+- tiktok.popup.discard
+way_out:
+- back
+timeout_s: 20.0
+status: candidate
+source: tiktok-lane
+evidence:
+- M2-tiktok/20261019T040524Z-rehearse/05-stopped-unknown.png
+note: Live on the iPhone 12 at 04:06Z; TikTok auto-attached a sound and labelled the Story target "Story 24h".

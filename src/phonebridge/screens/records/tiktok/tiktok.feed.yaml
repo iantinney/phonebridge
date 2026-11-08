@@ -1,0 +1,94 @@
+id: tiktok.feed
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+appearance: dark
+avoid:
+- - 0.0
+  - 0.04
+  - 1.0
+  - 0.12
+- - 0.0
+  - 0.9
+  - 1.0
+  - 1.0
+- - 0.85
+  - 0.35
+  - 1.0
+  - 0.52
+- - 0.85
+  - 0.6
+  - 1.0
+  - 0.85
+header:
+- 0.0
+- 0.6
+- 0.75
+- 0.85
+chrome:
+- - 0.0
+  - 0.9
+  - 1.0
+  - 1.0
+match:
+  inks:
+  - {name: home_lit, kind: bright, region: [0.04, 0.915, 0.14, 0.95], min: 0.15}
+  - {name: profile_dim, kind: bright, region: [0.84, 0.915, 0.94, 0.95], max: 0.06}
+  - {name: plus_cyan, kind: cyan, region: [0.33, 0.905, 0.67, 0.96], min: 0.004}
+  - {name: plus_red, kind: red, region: [0.33, 0.905, 0.67, 0.96], min: 0.004}
+  ocr_in:
+    For You:
+    - 0.2
+    - 0.04
+    - 0.85
+    - 0.15
+  ocr_none:
+  - Settings and privacy
+  - Edit profile
+  - Add comment...
+  - Not interested
+  - Send to
+  - Added to Favorites
+  - Continue editing this post?
+targets:
+  profile_tab:
+    region:
+    - 0.8
+    - 0.9
+    - 1.0
+    - 0.97
+  home_tab:
+    region:
+    - 0.0
+    - 0.9
+    - 0.2
+    - 0.97
+  create:
+    region:
+    - 0.42
+    - 0.91
+    - 0.58
+    - 0.955
+  search:
+    region:
+    - 0.88
+    - 0.06
+    - 0.98
+    - 0.105
+next:
+  profile_tab:
+  - tiktok.profile
+  search:
+  - tiktok.search
+  create:
+  - tiktok.create.camera
+way_out:
+- home
+status: candidate
+source: tracer
+note: 'tap-safe zones (avoid): top tabs, tab bar, right rail (like/comment/share/profile column) | header zone:
+  the @handle line in the lower-left text block (measured 0.78 h), left of the right rail | 10-19 (lane surfaces,
+  merged with lane tiktok f92f64b): appearance judged by dark-pixel share on its declared chrome, the bottom tab
+  bar (the top band is the video); overlays vetoed (comments composer bar, long-press menu, share panel, Favorites
+  toast); the right rail''s avoid zone leaves the measured comment band 0.52-0.60 h open for the pixel-confirmed
+  comments tap. The merged/truncated nav line (''ew Haven Following Friends For'', fast level ''… Following Friends
+  ForYou'') has no ''For You'': tiktok.feed.merged_nav. | 10-19 (surfaces3): the feed is read from PIXELS first (fast OCR garbles the nav: ''Follo'', ''LIVE'' alone; the accurate level cost 111-141 ms per look): the bottom bar''s Home icon lit (white) with Profile unlit and the cyan/red ''+'' button, then ''For You'' in the tab row; 152/152 real feed frames, 0/955 others in the controller-verify corpus.'

@@ -1,0 +1,43 @@
+id: instagram.post
+platform: instagram
+bundle: com.burbn.instagram
+appearance: any
+avoid:
+- - 0.0
+  - 0.88
+  - 1.0
+  - 1.0
+match:
+  ocr_all:
+  - Posts
+  ocr_any:
+  - Liked by
+  - View all
+  - comments
+  - Add a comment
+  - likes
+  at_least: 1
+  ocr_none:
+  - Edit profile
+  - followers
+  - Search with Meta
+targets:
+  back:
+    region:
+    - 0.0
+    - 0.05
+    - 0.12
+    - 0.1
+next:
+  back:
+  - instagram.profile.other
+  - instagram.profile
+  - instagram.tag
+way_out:
+- back
+status: candidate
+source: task-agent
+note: 'Designed (lane task-agent 10-19), NOT from a real frame: one post opened from a profile grid (or a tag page): title
+  "Posts" with the back chevron, the author handle under it, the media, the action row (heart, comment, share, bookmark at
+  0.938 w: feedmaps ig_save_icon / ig_saved_state / ig_heart resolve them on the pixels), the caption. Proven only on
+  run/dosim.py. Surfaces: replace with a captured frame.'

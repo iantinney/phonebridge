@@ -1,0 +1,20 @@
+id: tiktok.stop.share
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+kind: stop
+match:
+  ocr_any:
+  - Send to
+  - Copy link
+  - Duet
+  - Stitch
+  - Repost
+  - Live photo
+  - Share as GIF
+  - Save video
+  at_least: 3
+status: candidate
+stop_reason: share_sheet
+source: surfaces
+note: 'The share panel (contacts row, Send to, Copy link, Repost, Duet, Stitch, Save video …): sending is outward,
+  so it parks with no gesture. Research candidate, mock fixture.'

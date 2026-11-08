@@ -1,0 +1,13 @@
+id: x.stop.compose
+platform: x
+bundle: com.atebits.Tweetie2
+kind: stop
+appearance: any
+match:
+  ocr_any: ["What's happening?", Everyone can reply, Add another post]
+  at_least: 1
+status: candidate
+stop_reason: composer
+source: surfaces
+note: 'The post composer (the compose "+", a reply): read-only on X, so it parks with no gesture. Placeholder and reply
+  scope from the X iOS composer (not captured: orchestrator 06:5xZ, no stop-screen captures); a mock fixture only.'

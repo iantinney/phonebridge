@@ -1,0 +1,26 @@
+id: x.media.video
+platform: x
+bundle: com.atebits.Tweetie2
+appearance: any
+avoid:
+- [0.0, 0.0, 1.0, 0.25]
+- [0.0, 0.65, 1.0, 1.0]
+match:
+  ocr_any: [1x]
+  at_least: 1
+  ocr_in:
+    1x: [0.4, 0.88, 0.7, 0.97]
+targets:
+  back:
+    region: [0.05, 0.27, 0.125, 0.31]
+next:
+  back: [x.post, x.home]
+way_out: [back]
+status: candidate
+source: surfaces
+evidence:
+- evidence/surfaces-capture/x-20261019T063445Z (07)
+note: 'The full-screen video player (a tap on a post''s video): reply/repost/like/bookmark/share pills on top (avoid),
+  ← (0.087 w, 0.289 h) and ⋯, the playback bar (pause, "-4:52", "1x" at 0.544 w 0.936 h, sound, full screen) at the
+  bottom; the overlay (author, a Follow pill at 0.865 w 0.722 h, caption, counts) comes and goes: the lower 35 % is
+  avoided.'

@@ -1,0 +1,70 @@
+id: tiktok.feed.draft_banner
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+appearance: dark
+avoid:
+- - 0.0
+  - 0.04
+  - 1.0
+  - 0.16
+- - 0.0
+  - 0.9
+  - 1.0
+  - 1.0
+- - 0.85
+  - 0.35
+  - 1.0
+  - 0.52
+- - 0.85
+  - 0.6
+  - 1.0
+  - 0.85
+header:
+- 0.0
+- 0.6
+- 0.75
+- 0.85
+chrome:
+- - 0.0
+  - 0.9
+  - 1.0
+  - 1.0
+match:
+  ocr_any:
+  - Home
+  - Shop
+  - Inbox
+  - Profile
+  at_least: 3
+  ocr_all:
+  - Continue editing this post?
+  ocr_in:
+    Continue editing this post?:
+    - 0.1
+    - 0.05
+    - 0.9
+    - 0.11
+  ocr_none:
+  - Followers
+  - Following
+  - Edit profile
+  - comments
+  - Add comment...
+targets:
+  home_tab:
+    region:
+    - 0.0
+    - 0.9
+    - 0.2
+    - 0.97
+way_out:
+- home
+evidence:
+- evidence/surfaces-capture/tiktok_profile-20261019T073826Z (01, 03)
+status: candidate
+source: surfaces
+note: 'The For You feed with TikTok''s draft banner across the top (''Continue editing this post?'' · Save draft
+  · Edit, 07:38Z, after tiktok-cx''s ''tiktok clean''): the banner replaces the nav line tiktok.feed anchors on,
+  so this is the same feed (the director''s ''tiktok.feed'' prefix accepts it) with the banner''s buttons in the
+  avoid zone — never Edit (opens the editor) nor Save draft. Bottom tabs + the banner text; profiles and the comments
+  sheet are vetoed.'

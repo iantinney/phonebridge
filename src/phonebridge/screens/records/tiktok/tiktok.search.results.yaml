@@ -1,0 +1,37 @@
+id: tiktok.search.results
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+appearance: any
+avoid:
+- - 0.0
+  - 0.04
+  - 1.0
+  - 0.1
+match:
+  ocr_any:
+  - Top
+  - Videos
+  - Users
+  - Sounds
+  - LIVE
+  - Places
+  - Hashtags
+  - Shop
+  - Photos
+  at_least: 4
+targets:
+  back:
+    region:
+    - 0.0
+    - 0.04
+    - 0.1
+    - 0.09
+next:
+  back:
+  - tiktok.feed
+way_out:
+- back
+status: candidate
+source: surfaces
+note: 'Search results after a query: the result tabs row (Top / Videos / Users / Sounds / Shop / LIVE / Places /
+  Hashtags). Research candidate, mock fixture (orchestrator 06:5xZ: search is designed-only tonight).'

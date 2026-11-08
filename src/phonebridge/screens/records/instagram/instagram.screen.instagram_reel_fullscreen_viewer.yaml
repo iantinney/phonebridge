@@ -1,0 +1,41 @@
+id: instagram.screen.instagram_reel_fullscreen_viewer
+platform: instagram
+bundle: com.burbn.instagram
+avoid:
+- [0.0, 0.04, 0.2, 0.13]
+- [0.0, 0.9, 1.0, 1.0]
+- [0.85, 0.3, 1.0, 0.86]
+header:
+- 0.05
+- 0.74
+- 0.8
+- 0.86
+match:
+  ocr_in:
+    Add comment...: [0.05, 0.91, 0.6, 0.98]
+  ocr_none:
+  - Comments
+  - Reply
+  - What do you think of this?
+  - Add a comment
+  - Following
+  - Edit profile
+targets:
+  back:
+    region: [0.03, 0.06, 0.125, 0.11]
+way_out:
+- back
+evidence:
+- instagram/instagram.screen.instagram_reel_fullscreen_viewer/2026-10-18-v-01.png
+- evidence/M3-director/r1-instagram-20261019T150812Z/000-before.png (R1 attempt 9: the start check read it unknown)
+status: candidate
+source: surfaces
+note: '10-19 (surfaces3): the full-screen Reels viewer opened from Explore / a profile (back chevron top-left, ''Reels Friends''
+  over the video, the right-side action rail, the ''Add comment...'' bar at the bottom, NO tab bar). It is not the Reels tab
+  (instagram.reels) and never the feed: the director leaves it by the back chevron. Anchored on the bottom bar''s ''Add comment...''
+  (the fast level reads it as ''Add comment'', the header over a bright video often not at all); the comments sheet''s own words
+  are vetoed (a sheet over the viewer is instagram.comments). | header zone: the handle line left-bottom above the caption
+  (measured 0.80 h) | was a VLM candidate (action back worked, run 4a035c81).'
+matches:
+- 4a035c81:d02390508b56
+successes: 1

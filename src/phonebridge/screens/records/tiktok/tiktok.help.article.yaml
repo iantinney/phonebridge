@@ -1,0 +1,30 @@
+id: tiktok.help.article
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+match:
+  ocr_any:
+  - Jump to a section
+  - How to check your account status
+  - From TikTok Studio
+  - Check your account status
+  at_least: 2
+  ocr_in:
+    Check your account status:
+    - 0.0
+    - 0.08
+    - 0.8
+    - 0.95
+targets:
+  back:
+    region:
+    - 0.0
+    - 0.04
+    - 0.16
+    - 0.13
+next:
+  back:
+  - tiktok.help
+way_out:
+- back
+status: confirmed
+source: tracer

@@ -1,0 +1,16 @@
+id: tiktok.stop.verification
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+kind: stop
+appearance: any
+match:
+  ocr_any:
+  - Verify to continue
+  - Verify to Continue
+  - Unusual activity
+  - Suspicious activity
+  at_least: 1
+status: confirmed
+stop_reason: verification
+source: PT
+note: config/pacing.toml [<platform>.stop] texts (PT), verbatim; one matching rule (SCR-11)

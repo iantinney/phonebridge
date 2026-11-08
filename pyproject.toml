@@ -1,0 +1,61 @@
+[project]
+name = "phonebridge"
+version = "0.1.0"
+description = "Let an AI agent see and operate a real iPhone from your Mac over USB: screenshots, on-device OCR, known-screen recognition, leased touch input, an MCP server. No jailbreak, no app on the phone."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+keywords = ["iphone", "ios", "mcp", "agent", "automation", "pymobiledevice3"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = [
+    "pymobiledevice3==11.34.1",
+    "mcp==2.3.0",
+    "pillow>=11",  # already required by pymobiledevice3
+    "pyobjc-framework-Vision==12.2.2; sys_platform == 'darwin'",
+    "pyobjc-framework-AVFoundation==12.2.2; sys_platform == 'darwin'",  # avf.py: the iPhone screen as a capture device
+    "pyobjc-framework-libdispatch==12.2.2; sys_platform == 'darwin'",  # avf.py: the capture's dispatch queue
+    "pyobjc-framework-NaturalLanguage==12.2.2; sys_platform == 'darwin'",  # director/semantic.py: on-device sentence embeddings
+    "pyyaml>=6",  # screens: one YAML record per known screen
+]
+
+[project.optional-dependencies]
+# The model for unfamiliar screens over the Anthropic API (ANTHROPIC_API_KEY) or AWS Bedrock. Without it, unknown
+# screens stop the task instead of being named by a model.
+vlm = ["anthropic[bedrock]>=0.80"]
+# macOS only: the local understanding model (`phonebridge understand serve`); about 800 MB of packages
+understand = ["mlx-vlm==0.7.8; sys_platform == 'darwin'"]
+
+[project.scripts]
+phonebridge = "phonebridge.cli:main"
+phonebridge-local-lease = "phonebridge.local_lease:main"
+phonebridge-workspace = "teachable_worker.standalone:main"  # the desktop workspace (stdlib only)
+
+[project.urls]
+Issues = "https://github.com/iantinney/phonebridge/issues"
+
+[dependency-groups]
+dev = ["pytest>=8", "numpy>=2.1"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# One distribution: the bridge, the small MCP client other programs use to talk to it, and the desktop workspace.
+packages = ["src/phonebridge", "packages/phonebridge-client/src/phonebridge_client", "packages/workspace/src/teachable_worker"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"packages/workspace/web" = "teachable_worker/web"  # the workspace page, inside the wheel (httpd's packaged fallback)
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "packages/phonebridge-client", "packages/workspace", "tests", "LICENSE", "README.md", "DEPENDENCIES.md", "*.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "packages/phonebridge-client/tests"]  # the workspace's tests run on their own (own conftest)
+pythonpath = ["tests"]

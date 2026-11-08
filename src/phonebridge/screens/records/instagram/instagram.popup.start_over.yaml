@@ -1,0 +1,52 @@
+id: instagram.popup.start_over
+platform: instagram
+bundle: com.burbn.instagram
+kind: popup
+match:
+  ocr_any:
+  - Start over?
+  - If you go back now, you will lose this
+  - Start over
+  - Save draft
+  - Keep editing
+  at_least: 3
+  ocr_in:
+    Start over?:
+    - 0.2
+    - 0.3
+    - 0.8
+    - 0.5
+targets:
+  keep_editing:
+    ocr: Keep editing
+    region:
+    - 0.2
+    - 0.55
+    - 0.8
+    - 0.75
+  save_draft:
+    ocr: Save draft
+    region:
+    - 0.2
+    - 0.5
+    - 0.8
+    - 0.7
+  start_over:
+    ocr: Start over
+    region:
+    - 0.2
+    - 0.45
+    - 0.8
+    - 0.6
+    irreversible: true
+next:
+  keep_editing:
+  - instagram.reel.editor
+  start_over:
+  - instagram.new_reel.picker
+  - instagram.new_post.picker
+status: confirmed
+answer: keep_editing
+source: tracer
+note: 'the discard dialog when backing out of the editor; the safe answer keeps editing, Start over discards (irreversible:
+  a rehearsal''s way out, confirmed record only)'

@@ -1,0 +1,46 @@
+id: x.home
+platform: x
+bundle: com.atebits.Tweetie2
+appearance: any
+avoid:
+- [0.0, 0.04, 1.0, 0.16]
+- [0.0, 0.9, 1.0, 1.0]
+- [0.8, 0.82, 1.0, 0.95]
+- [0.9, 0.16, 1.0, 0.9]
+match:
+  ocr_any: ['+']
+  at_least: 1
+  ocr_in:
+    '+': [0.84, 0.82, 0.97, 0.95]
+  ocr_none: [Posts, Post your reply, 1x]
+  templates:
+  - name: compose_fab
+    file: x/compose_fab.png
+    region: [0.8, 0.8, 1.0, 0.96]
+    min_score: 0.9
+targets:
+  heart:
+    region: [0.5, 0.18, 0.55, 0.82]
+  for_you_tab:
+    ocr: For you
+    region: [0.0, 0.11, 0.4, 0.16]
+  following_tab:
+    ocr: Following
+    region: [0.25, 0.11, 0.7, 0.16]
+next:
+  following_tab: [x.home]
+  for_you_tab: [x.home]
+way_out: [home]
+status: candidate
+source: surfaces
+evidence:
+- evidence/surfaces-capture/x-20261019T062643Z (01-04)
+- evidence/surfaces-capture/x-20261019T063445Z (01-04)
+note: 'X home timeline (For you / Following / pinned lists): the blue compose "+" (OCR reads it at 0.90 w, 0.857 h
+  unscrolled, 0.917 h scrolled) is the only chrome left once scrolled (X hides the top tabs AND the bottom tab bar), and
+  profiles carry it too, so a profile ("Posts" tab / "12.9K posts"), a post ("Post your reply") and the video player ("1x")
+  are vetoed; the blue compose button itself is a template (0.95-0.996 on the 26 real X frames, ≤ 0.64 on every
+  TikTok confuser, whose shifted "+" lands in the same region): needs pixels. Appearance any: banners and media fill the top band. Avoid: top bar + tabs (avatar, "Add +"), tab bar, the
+  compose "+", and the right column (each post''s ✕ dismiss and ⋯ menu, bookmark/share). Post boundaries: a header line
+  ending in an age token ("@samplenews•16h"); Who-to-follow rows and ads carry none (director/feedmaps.py). Read-only
+  on X (orchestrator 06:1xZ): no like/follow/reply kinds. | 10-20 (surfaces6): X writes are allowed (DECISIONS 646df80): targets.heart = the like heart of an action row, centre 0.526 w, the row''s y (the row is found by its views count / like count, feedmaps.x_heart: the post with its header on screen); the region is only the column, the resolver gives the row. Liked state: feedmaps.x_like_state(png, row_y) reads pink on the heart (#F91880); the 26 real frames are all unliked, the liked side is synthetic.'

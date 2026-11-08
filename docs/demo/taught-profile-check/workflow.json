@@ -1,0 +1,374 @@
+{
+  "format": "phonebridge.workflow/1",
+  "name": "Account check (taught)",
+  "platform": "instagram",
+  "goal": "Check @{handle}'s profile",
+  "params": {
+    "handle": {
+      "type": "handle"
+    }
+  },
+  "steps": [
+    {
+      "id": "s1",
+      "op": "tap",
+      "screen": {
+        "id": "own_profile"
+      },
+      "expect": {
+        "id": "search"
+      },
+      "target": {
+        "icon_at": [
+          0.7,
+          0.931
+        ],
+        "what": "Tap the Search tab"
+      },
+      "pause_s": {
+        "median": 0.41,
+        "sigma": 0.35
+      },
+      "confidence": 0.8,
+      "evidence": [
+        "touch"
+      ]
+    },
+    {
+      "id": "s2",
+      "op": "tap",
+      "screen": {
+        "id": "search"
+      },
+      "expect": {
+        "id": "search"
+      },
+      "target": {
+        "label": "Search"
+      },
+      "pause_s": {
+        "median": 0.95,
+        "sigma": 0.35
+      },
+      "confidence": 0.95,
+      "evidence": [
+        "next_title",
+        "touch",
+        "under_touch"
+      ]
+    },
+    {
+      "id": "s3",
+      "op": "tap",
+      "screen": {
+        "id": "search",
+        "anchors": [
+          "Recent",
+          "See all"
+        ]
+      },
+      "expect": {
+        "id": "search"
+      },
+      "target": {
+        "icon_at": [
+          0.795,
+          0.084
+        ],
+        "what": "Clear the previous search"
+      },
+      "pause_s": {
+        "median": 0.47,
+        "sigma": 0.35
+      },
+      "confidence": 0.8,
+      "evidence": [
+        "touch"
+      ]
+    },
+    {
+      "id": "s4",
+      "op": "type",
+      "screen": {
+        "id": "search",
+        "anchors": [
+          "Recent",
+          "See all"
+        ]
+      },
+      "expect": {
+        "id": "search"
+      },
+      "value": {
+        "param": "handle"
+      },
+      "pause_s": {
+        "median": 2.36,
+        "sigma": 0.35
+      },
+      "confidence": 0.9,
+      "evidence": [
+        "text_appeared"
+      ]
+    },
+    {
+      "id": "s5",
+      "op": "tap",
+      "screen": {
+        "id": "search"
+      },
+      "expect": {
+        "id": "keyword"
+      },
+      "target": {
+        "param": "handle"
+      },
+      "pause_s": {
+        "median": 1.23,
+        "sigma": 0.35
+      },
+      "confidence": 0.95,
+      "evidence": [
+        "is_parameter",
+        "next_title",
+        "touch",
+        "under_touch"
+      ]
+    },
+    {
+      "id": "s6",
+      "op": "tap",
+      "screen": {
+        "id": "keyword",
+        "anchors": [
+          "For you",
+          "Profiles",
+          "Audio",
+          "Tags"
+        ]
+      },
+      "expect": {
+        "id": "keyword"
+      },
+      "target": {
+        "label": "Profiles"
+      },
+      "pause_s": {
+        "median": 1.04,
+        "sigma": 0.35
+      },
+      "confidence": 0.95,
+      "evidence": [
+        "touch",
+        "under_touch"
+      ]
+    },
+    {
+      "id": "s7",
+      "op": "tap",
+      "screen": {
+        "id": "keyword",
+        "anchors": [
+          "Profiles",
+          "Audio",
+          "For you",
+          "Tags"
+        ]
+      },
+      "expect": {
+        "id": "other_profile"
+      },
+      "target": {
+        "param": "handle"
+      },
+      "pause_s": {
+        "median": 1.38,
+        "sigma": 0.35
+      },
+      "confidence": 0.95,
+      "evidence": [
+        "is_parameter",
+        "touch",
+        "under_touch"
+      ]
+    },
+    {
+      "id": "s8",
+      "op": "read",
+      "screen": {
+        "id": "other_profile",
+        "anchors": [
+          "posts",
+          "followers",
+          "following",
+          "Follow"
+        ]
+      },
+      "expect": {},
+      "read": "posts@0.009,-0.022",
+      "confidence": 0.9,
+      "evidence": [
+        "asked",
+        "value_beside_label"
+      ]
+    },
+    {
+      "id": "s9",
+      "op": "read",
+      "screen": {
+        "id": "other_profile",
+        "anchors": [
+          "posts",
+          "followers",
+          "following",
+          "Follow"
+        ]
+      },
+      "expect": {},
+      "read": "followers@-0.015,-0.021",
+      "confidence": 0.9,
+      "evidence": [
+        "asked",
+        "value_beside_label"
+      ]
+    },
+    {
+      "id": "s10",
+      "op": "read",
+      "screen": {
+        "id": "other_profile",
+        "anchors": [
+          "posts",
+          "followers",
+          "following",
+          "Follow"
+        ]
+      },
+      "expect": {},
+      "read": "following@-0.034,-0.023",
+      "confidence": 0.9,
+      "evidence": [
+        "asked",
+        "value_beside_label"
+      ]
+    }
+  ],
+  "rules": [],
+  "never": [],
+  "publish_via": null,
+  "pacing": {
+    "humanize": {
+      "think": {
+        "tap": [
+          829.1,
+          0.51,
+          150,
+          8000
+        ]
+      }
+    },
+    "source": "an agent's or synthetic run (not a person's pace)"
+  },
+  "provenance": {
+    "version": 1,
+    "derived_from": "session",
+    "recorded_by": "agent",
+    "analyser": "teach-2",
+    "interpreter": "off",
+    "open_questions": 0
+  },
+  "learned_path": {
+    "id": "instagram.account_check_taught",
+    "platform": "instagram",
+    "goal": "Check @{handle}'s profile",
+    "slots": {
+      "handle": {
+        "type": "handle"
+      }
+    },
+    "scope": [],
+    "start": [
+      "own_profile"
+    ],
+    "steps": [
+      {
+        "at": "own_profile",
+        "do": "tap:icon:tap_the_search_tab",
+        "expect": [
+          "search"
+        ]
+      },
+      {
+        "at": "search",
+        "do": "tap:text:Search"
+      },
+      {
+        "at": "search",
+        "do": "tap:icon:clear_the_previous_search"
+      },
+      {
+        "at": "search",
+        "do": "type:handle"
+      },
+      {
+        "at": "search",
+        "do": "tap:text:{handle}",
+        "expect": [
+          "keyword"
+        ]
+      },
+      {
+        "at": "keyword",
+        "do": "tap:text:Profiles"
+      },
+      {
+        "at": "keyword",
+        "do": "tap:text:{handle}",
+        "expect": [
+          "other_profile"
+        ]
+      },
+      {
+        "at": "other_profile",
+        "do": "read:posts@+0.009,-0.022"
+      },
+      {
+        "at": "other_profile",
+        "do": "read:followers@-0.015,-0.021"
+      },
+      {
+        "at": "other_profile",
+        "do": "read:following@-0.034,-0.023"
+      }
+    ],
+    "verify": {
+      "shows": "{handle}"
+    },
+    "origin": {
+      "source": "teaching",
+      "routine": null,
+      "version": null,
+      "derived_from": "session"
+    },
+    "unresolved": [
+      {
+        "step": "s1",
+        "icon": "Tap the Search tab",
+        "at": [
+          0.7,
+          0.931
+        ],
+        "need": "the record target for this icon"
+      },
+      {
+        "step": "s3",
+        "icon": "Clear the previous search",
+        "at": [
+          0.795,
+          0.084
+        ],
+        "need": "the record target for this icon"
+      }
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+id: tiktok.menu
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+match:
+  ocr_any:
+  - Settings and privacy
+  - TikTok Studio
+  - Your QR code
+  - Balance
+  - Creation & business tools
+  - Personal tools
+  at_least: 2
+  ocr_in:
+    Settings and privacy:
+    - 0.0
+    - 0.3
+    - 0.8
+    - 0.7
+  ocr_none:
+  - Security & permissions
+  - Time and well-being
+targets:
+  settings:
+    ocr: Settings and privacy
+  close:  # the dimmed strip of the profile left of the drawer (≡ opens a drawer from the right, x > 0.15)
+    region:
+    - 0.0
+    - 0.5
+    - 0.1
+    - 0.65
+next:
+  settings:
+  - tiktok.settings
+  close:
+  - tiktok.profile
+way_out:
+- back
+status: candidate
+source: tracer
+note: 'demoted: led to an unknown screen: unknown screen, no learner: unrecognised chrome'

@@ -1,0 +1,50 @@
+id: instagram.reels
+platform: instagram
+bundle: com.burbn.instagram
+appearance: dark
+avoid:
+- [0.0, 0.04, 1.0, 0.13]
+- [0.0, 0.88, 1.0, 1.0]
+- [0.85, 0.3, 1.0, 0.86]
+header:
+- 0.05
+- 0.74
+- 0.8
+- 0.86
+chrome:
+- [0.0, 0.88, 1.0, 1.0]
+match:
+  ocr_in:
+    Reels Friends: [0.3, 0.05, 0.7, 0.12]
+  ocr_none:
+  - Add comment...
+  - Comments
+  - Settings and activity
+  - Edit profile
+  - followers
+targets:
+  create:
+    region: [0.0, 0.04, 0.16, 0.13]
+  home_tab:
+    region: [0.0, 0.9, 0.2, 0.97]
+  reels_tab:
+    region: [0.2, 0.9, 0.4, 0.97]
+  search_tab:
+    region: [0.6, 0.9, 0.8, 0.97]
+  profile_tab:
+    region: [0.8, 0.9, 1.0, 0.97]
+next:
+  home_tab:
+  - instagram.home
+  profile_tab:
+  - instagram.profile
+  search_tab:
+  - instagram.search
+way_out:
+- home
+status: candidate
+source: surfaces
+note: '10-19 (surfaces3): the Reels TAB (''+'' top-left, ''Reels Friends'' header, the tab bar with Reels lit): the header words in
+  the top band, no ''Add comment...'' bar (that is the full-screen viewer, instagram.screen.instagram_reel_fullscreen_viewer,
+  which has no tab bar). Appearance by dark share on the tab bar alone (the status bar sits over the video: dark share 0.08 on real frames). Real frames: the director''s
+  trace-v* 021, the tracer calibrate frame, the classifier''s injected strip. | header zone: the handle line left-bottom (0.80 h).'

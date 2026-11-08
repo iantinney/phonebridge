@@ -1,0 +1,19 @@
+id: instagram.stop.share
+platform: instagram
+bundle: com.burbn.instagram
+kind: stop
+match:
+  ocr_any:
+  - Add to story
+  - Copy link
+  - Share to...
+  - Share to
+  - Send separately
+  - Create group
+  - Write a message...
+  at_least: 2
+status: candidate
+stop_reason: share_sheet
+source: surfaces
+note: 'The share sheet (the ✈): contacts, Write a message, Add to story, Copy link, Share to…: sending is outward,
+  so it parks with no gesture. Research candidate, mock fixture.'

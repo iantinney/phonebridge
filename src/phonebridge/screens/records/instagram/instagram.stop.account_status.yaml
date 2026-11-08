@@ -1,0 +1,19 @@
+id: instagram.stop.account_status
+platform: instagram
+bundle: com.burbn.instagram
+kind: stop
+appearance: any
+match:
+  ocr_any:
+  - Account Status
+  - Your account has been restricted
+  - Features you can't use
+  - can't be recommended
+  - Your account was disabled
+  - We've disabled your account
+  at_least: 2
+status: confirmed
+stop_reason: restricted
+source: PT
+note: config/pacing.toml [<platform>.stop] texts (PT), verbatim; one matching rule (SCR-11); 'Account Status' alone
+  also names the settings row and help pages, so it needs one restriction phrase beside it (docs/knowledge/screens-store.md)

@@ -1,0 +1,60 @@
+id: tiktok.settings
+platform: tiktok
+bundle: com.zhiliaoapp.musically
+match:
+  ocr_any:
+  - Settings and privacy
+  - Account
+  - Security & permissions
+  - Notifications
+  - Time and well-being
+  - Privacy Center
+  - Support & About
+  - Cache & Cellular
+  - Display
+  - Accessibility
+  - Preferences
+  - Interactions
+  - Inbox & Messaging
+  - Playback
+  - Audience control
+  - Visibility
+  - Private account
+  - Family Pairing
+  - Language
+  - Activity center
+  - Content preferences
+  at_least: 2
+  ocr_in:
+    Settings and privacy:
+    - 0.25
+    - 0.04
+    - 0.75
+    - 0.17
+  ocr_none:
+  - TikTok Studio
+  - Balance
+  - Account Information
+targets:
+  back:
+    region:
+    - 0.0
+    - 0.04
+    - 0.16
+    - 0.13
+  account:
+    ocr: Account
+    region:
+    - 0.0
+    - 0.13
+    - 0.6
+    - 0.6
+next:
+  back:
+  - tiktok.profile
+  account:
+  - tiktok.settings.account
+way_out:
+- back
+status: confirmed
+source: tracer

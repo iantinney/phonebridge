@@ -1,0 +1,28 @@
+id: x.post
+platform: x
+bundle: com.atebits.Tweetie2
+appearance: any
+avoid:
+- [0.0, 0.84, 1.0, 1.0]
+- [0.85, 0.04, 1.0, 0.12]
+match:
+  ocr_any: [Post your reply]
+  at_least: 1
+  ocr_in:
+    Post your reply: [0.0, 0.8, 1.0, 0.93]
+targets:
+  heart:
+    region: [0.5, 0.18, 0.55, 0.82]
+  back:
+    region: [0.02, 0.065, 0.085, 0.1]
+next:
+  back: [x.home, x.profile]
+way_out: [back]
+status: candidate
+source: surfaces
+evidence:
+- evidence/surfaces-capture/x-20261019T063445Z (05-06)
+note: 'A post opened from the timeline (tap its text): "← Post" nav bar, the post, its stats line ("8:00 AM • 10/18/26
+  • 326K Views"), replies ("Relevant", "View quotes"), the "Post your reply" bar. X hides the nav bar once the thread is
+  scrolled: the ← (0.051 w, 0.082 h) is only there while the "Post" title shows; a small downward nudge brings it back
+  (a guessed tap there opened a video at 06:34Z). Avoid: the reply bar (opens the composer) and the ⋯ menu. | 10-20 (surfaces6): X writes are allowed (DECISIONS 646df80): targets.heart = the like heart of an action row, centre 0.526 w, the row''s y (the row is found by its views count / like count, feedmaps.x_heart: the post with its header on screen); the region is only the column, the resolver gives the row. Liked state: feedmaps.x_like_state(png, row_y) reads pink on the heart (#F91880); the 26 real frames are all unliked, the liked side is synthetic.'

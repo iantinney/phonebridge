@@ -1,0 +1,63 @@
+# All settings, with their defaults. `phonebridge setup` writes a minimal config to
+# ~/.config/phonebridge/phonebridge.toml (PHONEBRIDGE_CONFIG overrides the path); edit that file to change these.
+# Aliases -> UDIDs (`phonebridge devices` prints them). Input holds the lease `device:<alias>` (override with
+# `lease = "..."`) so one controller at a time; `supervision` is reported to agents (read-only = no outward account
+# actions; hold-outward = ask the operator before posts, DMs, comments, likes, follows; auto).
+
+# Input path: "pmd3" (CoreDevice HID over USB; needs Developer Mode). ("bthid" needs a Bluetooth daemon that is not
+# part of this release.)
+input = "pmd3"
+
+# The eyes: "auto" (= avf on macOS), "avf" (QuickTime-style capture of the screen, ~60 fps, needs the logged-in GUI
+# session and Camera access for the daemon's Python; started over SSH it gets no frames), "stream" (the CoreDevice
+# display stream decoded in-process; seen arriving over both tunnels on iOS 27.2), "dvt" (stills only, ~0.4 s each).
+# PHONEBRIDGE_EYES in the daemon's environment overrides this (dvt = switch live capture off).
+# eyes = "auto"
+
+# How the daemon reaches the phone's services: "auto" (tunneld when it lists the phone, else an in-process userspace
+# tunnel), "tunneld" (only: `sudo pymobiledevice3 remote tunneld` serves it on 127.0.0.1:49151),
+# "userspace" (only; no root).
+# tunnel = "auto"
+
+# CoreDevice registers a Mouse-usage HID surface (1281) for the Mac; iOS's GameController counts it as a connected
+# mouse, so web pages read (any-hover: hover) and (any-pointer: fine) as true and apps can see a mouse. "remove"
+# asks the phone to drop it once the daemon's touch session is open (experiment; "keep" is the default).
+# pointer_surface = "keep"
+
+[devices.phone]
+udid = "00008101-XXXXXXXXXXXXXXXX"
+supervision = "read-only"
+
+[lease]
+# The lease command: phonebridge-local-lease keeps one controller per phone on this Mac (SQLite under
+# ~/.local/state/phonebridge). Any command with the same acquire/check/renew/release protocol works. Without one,
+# input is refused unless `enforce = false` (then there is no device lock at all).
+cmd = ["phonebridge-local-lease"]
+enforce = true
+
+[host]
+# While `phonebridge serve --http` runs on macOS: sleep/wake, USB and battery/thermal guards (always on), and
+# alert_cmd = ["my-notifier"]  # a command that gets each host alert as its last argument (default: the log only)
+# heartbeat = false            # beats to the lease command, for a lease service that takes them
+
+[policy]
+# open_url allowlist (fnmatch patterns over the whole URL). Default: ["https://*"].
+urls = ["https://*"]
+
+[humanize]
+# How every tap, swipe, flick, keystroke and pause is drawn (humanize.py has all fields and the evidence,
+# docs/research/human-input-timing.md the measurements). Times are ms; a distribution is
+# [median, log-sigma, min, max]. Everything below is the default; omit the table to keep it.
+# seed = 7                      # fixed seed: reproducible gestures (tests, replays)
+# tap_sigma = 27.0              # px per axis (1.5 mm on the iPhone 12), truncated inside the target
+# tap_offset = [0.0, 0.12]      # systematic bias as a fraction of the target size (thumbs land low)
+# press = [85, 0.30, 40, 250]
+# swipe_bow = [0.067, 0.55, 0.005, 0.3]   # bow / length, one side per session
+# swipe_profile = [1.6, 3.0, 0.8]         # speed ~ Beta(a, b) over the first 80 %: peak early, lifted in motion
+# flick_len = [0.22, 0.5, 0.08, 0.55]     # scroll() length as a fraction of screen height
+# flick_time = [190, 0.45, 80, 600]
+# key_gap = [150, 0.45, 40, 1500]         # + key_hold [85, 0.25, 40, 200] = ~235 ms letter to letter
+# typo_rate = 0.03                        # slips to a neighbouring key, noticed and backspaced
+# [humanize.think]              # minimum pause before an input since this phone's last input (agent latency counts)
+# tap = [1000, 0.8, 150, 8000]
+# swipe = [700, 0.8, 100, 8000]

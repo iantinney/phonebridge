@@ -1,0 +1,45 @@
+id: ios.settings.photos_access
+platform: ios
+bundle: com.apple.Preferences
+appearance: dark
+match:
+  ocr_any:
+  - Photo Library Access
+  - Limited Access
+  - Full Access
+  - None
+  at_least: 3
+  ocr_in:
+    Photo Library Access:
+    - 0.0
+    - 0.08
+    - 0.5
+    - 0.3
+  ocr_none:
+  - Allow Full Access
+  - Cancel
+targets:
+  back:
+    region:
+    - 0.0
+    - 0.04
+    - 0.16
+    - 0.13
+  full_access:
+    ocr: Full Access
+    irreversible: true
+  none:
+    ocr: None
+    irreversible: true
+next:
+  back:
+  - ios.settings.app
+  full_access:
+  - ios.alert.photos_full_access
+  - ios.settings.photos_access
+way_out:
+- back
+- home
+status: confirmed
+source: tracer
+note: 'a Settings change: irreversible targets, confirmed record only, never the VLM (SCR-06 guard)'

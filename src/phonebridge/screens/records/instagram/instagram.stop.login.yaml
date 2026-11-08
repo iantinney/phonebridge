@@ -1,0 +1,15 @@
+id: instagram.stop.login
+platform: instagram
+bundle: com.burbn.instagram
+kind: stop
+appearance: any
+match:
+  ocr_any:
+  - Log in
+  - Log In
+  - Sign up
+  at_least: 1
+status: confirmed
+stop_reason: login_wall
+source: PT
+note: config/pacing.toml [<platform>.stop] texts (PT), verbatim; one matching rule (SCR-11)
