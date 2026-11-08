@@ -176,6 +176,7 @@ class Bridge:
                  controller_idle: float = 300.0):
         self.backend = backend
         self._config, self._path, self._mtime = config or Config(), None if config else config_path, None
+        self._loaded_config = config is not None
         self.leases = Leases(self._config.lease_cmd)
         self.human = Humanizer(self._config.humanize)
         self._humans: dict[str, Humanizer] = {}
@@ -220,7 +221,10 @@ class Bridge:
         if self._path is not None:
             mtime = self._path.stat().st_mtime if self._path.exists() else None
             if mtime != self._mtime:
-                new, self._mtime = Config.load(self._path), mtime
+                new = Config.load(self._path)
+                driver_settings = ("input", "eyes", "tunnel", "pointer_surface")
+                if self._loaded_config and any(getattr(new, k) != getattr(self._config, k) for k in driver_settings):
+                    raise ValueError("phone transport or capture settings changed; restart the bridge before continuing")
                 if new.lease_cmd != self.leases.cmd:  # don't carry leases across authhub endpoints
                     self.leases.release_all()
                     self._owner.clear()
@@ -229,6 +233,7 @@ class Bridge:
                     self.human = Humanizer(new.humanize)
                     self._humans.clear()
                 self._config = new
+                self._mtime, self._loaded_config = mtime, True
         return self._config
 
     def _human(self, udid: str) -> Humanizer:

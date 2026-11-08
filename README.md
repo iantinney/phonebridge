@@ -1,9 +1,17 @@
 # Phonebridge
 
-**Give your phone a job.** Phonebridge is an open-source agent workspace for your real iPhone. Watch the phone live
-on your Mac, follow each step with the screen it acted on, and stop or take over at any point. Agents such as Claude
-Code and Codex can drive the same phone through Phonebridge's MCP server. It works over USB, with no jailbreak and
-no app on the phone.
+**Agents, on your own iPhones.** Phonebridge connects agents to physical iPhones from one Mac: separate screens,
+exclusive device control, and configurable touch and typing behaviour. Its multi-device path targets **up to seven
+iPhones concurrently** over USB, with no jailbreak or app installed on the phones. Claude Code, Codex and other MCP
+clients can use it; the desktop workspace shows the live phone and the evidence behind each task.
+
+**[Seven-phone setup and architecture](docs/multi-iphone.md)** ·
+**[Real-phone demonstration](docs/demo/taught-profile-check/)** ·
+**[Development history](docs/development-history.md)**
+
+Seven-device concurrency and isolation are tested in software with simulated phones. Native validation currently
+covers one iPhone 12, not a seven-phone hardware rig. Physical devices preserve their own iOS and signed-in app
+sessions; natural input timing is not a guarantee of platform trust, undetectability or immunity from bans.
 
 We're building toward describing a result once and getting finished work back. The alpha's demonstrated scope is
 below. **[Bring one real phone chore](docs/partners/)** to help choose what comes next: an uncut creator or early-user
@@ -56,9 +64,9 @@ Linux installs and runs the test suite, but only macOS can drive a phone (Apple 
 both arrive over that tunnel (2026-11-08, with pymobiledevice3's tunnel service also running on that Mac; a Mac
 without the service hasn't been checked yet).
 
-By default the screen comes through AVFoundation, which works only for a bridge running in your logged-in desktop
-session. A bridge started any other way (over SSH, for example) gets no AVFoundation frames and falls back to the
-screen stream.
+For a single phone, the default screen path tries AVFoundation in the logged-in desktop session, falling back to
+the screen stream. Multi-phone configurations use a device-specific stream or DVT stills; see the
+[multi-iPhone guide](docs/multi-iphone.md).
 
 If the live view or input doesn't start, run pymobiledevice3's tunnel service and try again; it needs an
 administrator password once per boot:
@@ -84,8 +92,9 @@ uv run phonebridge devices     # the connected phone's UDID and iOS version
 uv run phonebridge setup       # writes ~/.config/phonebridge/phonebridge.toml for that phone, alias "phone"
 ```
 
-`setup` refuses to overwrite an existing config. With several phones connected, pass `--device <UDID>`; `--alias`
-names the phone. The config it writes:
+With several phones connected, pass `--device <UDID>`; `--alias` names the phone. Setup can add devices to an existing
+config while preserving its other settings. For the multi-phone path, use `setup --all --multi-phone stream` and
+restart the bridge ([full setup](docs/multi-iphone.md)). The config it writes:
 
 - marks the phone `read-only` (reported to agents as advice; Phonebridge can't tell a Post tap from any other tap);
 - turns on the local lease: every input holds `device:<alias>` through `phonebridge-local-lease`, so only one
@@ -227,16 +236,17 @@ Every capability and the evidence behind it, as of this release.
 | Desktop workspace (`phonebridge-workspace`): live phone view, "Read the screen", tasks with steps, stop | Included. On a fresh install, the imported taught workflow ran on the real phone through the HTTP API; its completed task, displayed counts and linked evidence were then checked in the shipped workspace using a browser. The browser did not initiate that validation run. |
 | Read-only Instagram tasks in the workspace: account check (named public profiles) and feed scout | Account check: a recorded run on the maintainers' iPhone 12 (iOS 27.2, 2026-11-08) read 2 of 2 public profiles, its counts checked against the frames it stored; one run from a fresh install is shown in [docs/demo/native-profile-check](docs/demo/native-profile-check/). Feed scout: no checked real run yet. |
 | Teach (alpha): a workflow from a finished task or a recording, read and corrected in the workspace, rerun on new handles (`taught_run`: Instagram profile checks only, read-only) | Two verified runs on the maintainers' iPhone 12 (iOS 27.2, 2026-11-08), each from a workflow taught on an `@natgeo` check. On a fresh install of this release, the workflow, imported unchanged, read `@apple`'s 1,413 posts, 38.1M followers and 9 following from one accurate result frame, with 9 inputs and no one stepping in ([evidence](docs/demo/taught-profile-check/)). An earlier run read a different public account in 32 s. Seven attempts failed along the way (four before the first success, three on the standalone release before the second) and led to the fixes in this release. A founder's install, not yet an outside user's; a Mac without the tunnel service is unchecked. |
-| Several phones at once | Leases are per device; only one physical phone has been exercised. |
+| Up to seven iPhones from one Mac | Concurrent MCP routing, per-device control, leases, pacing and failure isolation tested with seven simulated devices. Multi-phone setup uses tunneld + separate screen streams. One physical phone validated; seven-phone hardware validation pending. [Setup and evidence](docs/multi-iphone.md). |
 | Posting, messaging, liking, following | No verified recipe and no per-action approval flow. The generic input tools can still tap any button, Post and Send included, so keep agents to read-only tasks and watch them. |
 
 Reports from other Macs and phones are the most useful contribution right now (see [Share a result](#share-a-result)).
 
 ## Limitations
 
-- **One Mac, one phone, verified.** The default in-process tunnel carries one phone per server process. Several
-  phones in one server need pymobiledevice3's tunnel service running as root
-  (`sudo uv run pymobiledevice3 remote tunneld`); that path hasn't been exercised with two phones for this release.
+- **Hardware validation covers one phone.** Seven-device routing and concurrency are software-tested. Multiple
+  phones in one server require pymobiledevice3's tunnel service (`sudo uv run pymobiledevice3 remote tunneld`) and
+  stream or DVT capture. The default in-process tunnel is single-phone only. Multi-phone hardware capacity and
+  reliability are not yet measured.
 - **The local lease is per Mac.** It keeps two controllers on one Mac from colliding. It doesn't coordinate across
   computers, and it isn't an account policy.
 - **The first look over the in-process tunnel** can fail once with "userspace dial plane is closed" (HTTP 503); the

@@ -198,3 +198,15 @@ def test_each_phone_has_independent_bounded_gestures(tmp_path, monkeypatch):
     assert all(abs(x - 500) <= 0.4 * 44 and abs(y - 800) <= 0.4 * 20 and 0.04 <= p <= 0.25
                for x, y, p in actual)
     assert len(set(actual)) > 1
+
+
+def test_changed_driver_settings_keep_refusing_until_restart(tmp_path):
+    path = tmp_path / "phonebridge.toml"
+    path.write_text('eyes = "stream"\ntunnel = "tunneld"\n')
+    b = Bridge(FakeBackend(), config_path=path, log_path=tmp_path / "calls.jsonl")
+    assert b.config.eyes == "stream"
+    path.write_text('eyes = "dvt"\ntunnel = "tunneld"\n')
+    for _ in range(2):
+        with pytest.raises(ValueError, match="restart the bridge"):
+            _ = b.config
+    assert b.backend.calls == []
