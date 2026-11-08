@@ -11,8 +11,7 @@ Input (tap, swipe, type, paste, home, launch, open_url) only goes to a configure
 device lock: the authhub lease `device:<alias>`. Either the caller passes its own lease token (verified;
 its lifetime is the caller's), or phonebridge holds the lease for that caller from its first input until
 `lease_idle` seconds after its last one, refusing other callers. A caller is an MCP session where the
-transport has one; stateless MCP-over-HTTP clients are all the single caller "mcp", so only a lease
-token makes them exclusive.
+transport has one; stateless MCP-over-HTTP clients must supply their own controller ID.
 
 A task is a live device lease in use: from its first input until phonebridge's own hold ends or the caller's
 lease is no longer live. While any task runs the Mac holds a power assertion (host/power.py). Guards on every
@@ -29,6 +28,7 @@ import asyncio
 import contextlib
 import fcntl
 import hashlib
+import inspect
 import io
 import json
 import math
@@ -178,6 +178,8 @@ class Bridge:
         self._config, self._path, self._mtime = config or Config(), None if config else config_path, None
         self.leases = Leases(self._config.lease_cmd)
         self.human = Humanizer(self._config.humanize)
+        self._humans: dict[str, Humanizer] = {}
+        self._inputs: dict[str, asyncio.Lock] = {}  # serialize a phone's checks, pacing and gesture; never other phones
         self._size: dict[str, tuple[int, int]] = {}  # udid -> screenshot pixels, for scroll()
         self.controller_idle = controller_idle  # explicit controllers: allow the 180 s media wait, bound abandoned visits
         self.lease_idle = lease_idle  # a device lock is released this long after its owner's last input
@@ -225,8 +227,18 @@ class Bridge:
                     self.leases.cmd = new.lease_cmd
                 if new.humanize != self._config.humanize:
                     self.human = Humanizer(new.humanize)
+                    self._humans.clear()
                 self._config = new
         return self._config
+
+    def _human(self, udid: str) -> Humanizer:
+        """Independent gesture/cadence state per physical phone, reproducible with a configured seed."""
+        config = self.config.humanize
+        if udid not in self._humans:
+            seed = None if config.seed is None else int.from_bytes(
+                hashlib.sha256(f"{config.seed}:{udid}".encode()).digest()[:8], "big")
+            self._humans[udid] = Humanizer(config, seed=seed)
+        return self._humans[udid]
 
     @asynccontextmanager
     async def _timed(self, op: str, device: str | None, **extra):
@@ -304,8 +316,10 @@ class Bridge:
         try:
             if check := INPUT_CHECK.get():
                 check()
-            async with self._leased(device, owner, lease) as udid:
-                yield udid
+            udid = self.config.resolve(device).udid
+            async with self._inputs.setdefault(udid, asyncio.Lock()):
+                async with self._leased(device, owner, lease) as udid:
+                    yield udid
         finally:
             held["active"] -= 1
             if not held["active"]:
@@ -735,7 +749,7 @@ class Bridge:
         """Pause like a person deciding on the next action: the drawn think time, less what has already
         passed since our last input on this phone (an agent's own latency counts). With a task app to keep
         frontmost, its query runs in the last FG_LEAD s of the pause, so it is <= FG_MAX_AGE s old at the input."""
-        want = self.human.think(op) if pause else 0.0  # pause=False: the caller paces its own inputs (the director)
+        want = self._human(udid).think(op) if pause else 0.0  # pause=False: the caller paces its own inputs (the director)
         if not pause:
             rec["think"] = "caller"
         wait = want - self._since(udid, "input")
@@ -818,7 +832,7 @@ class Bridge:
                     finally:
                         self._acted(udid)
             finally:
-                if got := self._recoveries_since(mark):
+                if got := self._recoveries_since(mark, self.config.resolve(device).udid):
                     rec["recoveries"] = got  # a backend call failed inside this input and was reset/retried
 
     def _fresh_enough(self, device: str, rec: dict, t_act: float, mark: int) -> None:
@@ -831,7 +845,7 @@ class Bridge:
         if pre > STALE_INPUT_S * 1000:
             steps = {k: rec[k] for k in ("hold_ms", "operator_ms", "lock_ms", "fg_ms") if rec.get(k)}
             why.append(f"the pre-input checks took {pre / 1000:.1f} s ({', '.join(f'{k} {v:.0f}' for k, v in steps.items())})")
-        if got := self._recoveries_since(mark):
+        if got := self._recoveries_since(mark, self.config.resolve(device).udid):
             why.append("a backend call recovered (" + "; ".join(f"{r['call']}: {r['error']}" for r in got) + ")")
         if why:
             rec["stale"] = True
@@ -841,8 +855,10 @@ class Bridge:
         r = getattr(self.backend, "recoveries", None)
         return r[-1]["n"] if r else 0
 
-    def _recoveries_since(self, mark: int) -> list[dict]:
-        return [dict(x) for x in getattr(self.backend, "recoveries", ()) if x["n"] > mark]
+    def _recoveries_since(self, mark: int, udid: str) -> list[dict]:
+        # Older backends omit UDID: retain those conservatively, but a peer's recovery cannot stale this phone.
+        return [dict(x) for x in getattr(self.backend, "recoveries", ())
+                if x["n"] > mark and x.get("udid", udid) == udid]
 
     # --- tasks and parking (host/watch.py drives these) -------------------------------------
     def _task(self, udid: str, device: str, caller: str, lease: str | None) -> Task:
@@ -918,7 +934,10 @@ class Bridge:
         """No input to this phone (None: every phone) until unpark(reason); the screen capture stops with it."""
         self._parked.setdefault(self.config.resolve(device).udid if device else "*", set()).add(reason)
         if stop := getattr(self.backend, "stop_eyes", None):
-            stop(f"park: {reason}")
+            if device and "udid" in inspect.signature(stop).parameters:
+                stop(f"park: {reason}", udid=self.config.resolve(device).udid)
+            else:
+                stop(f"park: {reason}")
 
     def unpark(self, reason: str, device: str | None = None) -> None:
         key = self.config.resolve(device).udid if device else "*"
@@ -992,7 +1011,7 @@ class Bridge:
                     self.leases.require_live(lease, self.config.resolve(device).lease)
                 else:
                     self.leases.require_held(self.config.resolve(device).lease)
-                await self.backend.swipe(udid, self.human.swipe(w / 2, h * 0.985, w / 2, h * 0.45, 0.25))
+                await self.backend.swipe(udid, self._human(udid).swipe(w / 2, h * 0.985, w / 2, h * 0.45, 0.25))
                 await asyncio.sleep(1.0)
                 self._acted(udid)
                 still, _ = await self._lock_reason(udid)
@@ -1009,6 +1028,8 @@ class Bridge:
         (pmd3 only), to compare what apps see: the same tap as a CoreDevice IndigoDigitizerEvent, or through a virtual
         digitizer of ours whose reports carry a `contact_mm` contact size."""
         _finite(x, y, w, h, contact_mm)
+        if w < 0 or h < 0:
+            raise ValueError("target dimensions must be non-negative")
         paths = {"report": "tap", "indigo": "tap_indigo", "vdigitizer": "tap_vdigitizer"}
         if path not in paths:
             raise ValueError(f"tap path {path!r}: {' | '.join(paths)}")
@@ -1017,7 +1038,7 @@ class Bridge:
         extra = {"contact_mm": contact_mm} if path == "vdigitizer" else {}
         async with self._act("tap", device, caller, lease, lock_guard=True, think=think, x=x, y=y, path=path,
                              **extra) as (udid, rec):
-            hx, hy, press = self.human.tap(x, y, w, h)
+            hx, hy, press = self._human(udid).tap(x, y, w, h)
             rec["at"], rec["press_ms"] = [round(hx), round(hy)], round(press * 1000)
             if path == "indigo":
                 await self.backend.tap_indigo(udid, hx, hy, press)
@@ -1043,8 +1064,10 @@ class Bridge:
         """Two quick taps as ONE input (a like on IG/TikTok): the humanizer's pair, ~100–300 ms apart, with no think delay
         between them (two `tap` calls would get the ordinary think and land as two single taps)."""
         _finite(x, y, w, h)
+        if w < 0 or h < 0:
+            raise ValueError("target dimensions must be non-negative")
         async with self._act("double_tap", device, caller, lease, lock_guard=True, think=think, x=x, y=y) as (udid, rec):
-            (x1, y1, p1), (x2, y2, p2), gap = self.human.double_tap(x, y, w, h)
+            (x1, y1, p1), (x2, y2, p2), gap = self._human(udid).double_tap(x, y, w, h)
             rec["at"], rec["gap_ms"] = [[round(x1), round(y1)], [round(x2), round(y2)]], round(gap * 1000)
             await self.backend.tap(udid, x1, y1, p1)
             await asyncio.sleep(max(0.0, gap - p1))
@@ -1070,7 +1093,8 @@ class Bridge:
             raise RuntimeError(f"{type(self.backend).__name__} has no indigo swipe path")
         async with self._act("swipe", device, caller, lease, swipe=(x1, y1, x2, y2), lock_guard=True, think=think,
                              dx=round(x2 - x1), dy=round(y2 - y1), release=release, path=path) as (udid, rec):
-            points = self.human.swipe(x1, y1, x2, y2, duration) if release is None else self.human.glide_path(x1, y1, x2, y2, duration, release)
+            human = self._human(udid)
+            points = human.swipe(x1, y1, x2, y2, duration) if release is None else human.glide_path(x1, y1, x2, y2, duration, release)
             rec["points"], rec["path_ms"] = len(points), round(points[-1][2] * 1000)
             rec.update(swipe_shape(points))
             await (self.backend.swipe_indigo(udid, points) if path == "indigo" else self.backend.swipe(udid, points))
@@ -1084,7 +1108,7 @@ class Bridge:
         if udid not in self._size:
             await self.screen(device)
         w, h = self._size[udid]
-        await self.swipe(device, *self.human.flick(w, h, direction), caller=caller, lease=lease)
+        await self.swipe(device, *self._human(self.config.resolve(device).udid).flick(w, h, direction), caller=caller, lease=lease)
 
     async def type(self, device: str, text: str, submit: bool = False, caller: str = "local",
                    lease: str | None = None) -> None:
@@ -1095,7 +1119,7 @@ class Bridge:
             raise ValueError("type() text can't contain control characters (a newline would press Return); "
                              "pass submit=True to press Return at the end")
         async with self._act("type", device, caller, lease, chars=len(text), submit=submit) as (udid, rec):
-            keys = self.human.keystrokes(text + ("\n" if submit else ""))
+            keys = self._human(udid).keystrokes(text + ("\n" if submit else ""))
             rec["keys"], rec["plan_ms"] = len(keys), round(sum(h + g for _, h, g in keys) * 1000)
             await self.backend.type(udid, keys)
 

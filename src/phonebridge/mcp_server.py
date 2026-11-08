@@ -23,10 +23,13 @@ def to_jpeg(png: bytes, quality: int = 80) -> bytes:
 
 
 INSTRUCTIONS = """Drive real iPhones over USB. `device` is an alias from phonebridge.toml (devices() lists them) or a UDID.
+Use a specific device on every call: a screen, OCR box or frame from one phone must never guide input on another.
+Separate agents may work concurrently on separate phones; within one phone, observe then act sequentially.
 Coordinates are screenshot pixels: read with ocr/find_text, then tap the returned x, y.
 Home-screen app labels are not tappable: tap the icon, about 2.2 label-heights (h) above the label.
 Input is humanized (tap spread inside the target, press and swipe timing, typing cadence, a think
 time before each action), so calls take a little longer than the raw gesture; use scroll() for feeds.
+These are interaction mechanics, not a promise of undetectability or permission to automate a service.
 Input needs the phone's device lock (the [lease] cmd's lease on device:<alias>). For exclusive use, hold that lease
 yourself and pass `lease=<token>` on every input call. Without it, this server takes the lease itself
 until 60 s after the last input. Stateless input requires a unique controller ID on every call.
@@ -41,7 +44,7 @@ is off USB or too hot, input waits (Parked: retry later); TaskEnded means back o
 
 def _caller(ctx: Context, controller: str | None = None) -> str:
     """Who owns phonebridge's own device lock: the MCP session where the transport has one (handshake-era
-    clients). Stateless HTTP (protocol 2026-07-28) has none, so all such clients are one caller, "mcp"."""
+    clients). Stateless HTTP clients must supply a controller ID."""
     if controller:
         return "remote:" + controller
     try:

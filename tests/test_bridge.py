@@ -120,7 +120,8 @@ def authhub_calls(log):
     return [line.split()[1] for line in log.read_text().splitlines()] if log.exists() else []
 
 
-EXACT = humanize.HumanConfig(seed=1, tap_sigma=0, tap_offset=(0, 0), think={}, typo_rate=0, pause_rate=0)  # land where asked, no pauses
+EXACT = humanize.HumanConfig(seed=1, tap_sigma=0, tap_offset=(0, 0), think={}, typo_rate=0, pause_rate=0,
+                            swipe_jitter=0, swipe_end_scale=0, swipe_drift=0, swipe_tremor=0)  # exact ends, no pauses
 
 
 def config(cmd, **kw):
@@ -778,7 +779,7 @@ def test_a_tap_after_a_backend_recovery_is_refused_as_stale(bridge, monkeypatch)
 def test_think_false_skips_the_drawn_pause_and_keeps_the_guards(bridge, monkeypatch):
     """The director paces its own inputs (dwell draws); the bridge's think pause would stack on them."""
     import time as _t
-    monkeypatch.setattr(bridge.human, "think", lambda op: 0.4)
+    monkeypatch.setattr(bridge._human("U12"), "think", lambda op: 0.4)
 
     async def go():
         await bridge.tap("iphone12", 1, 2)

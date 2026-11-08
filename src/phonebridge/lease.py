@@ -45,14 +45,19 @@ class Leases:
         self._held: dict[str, tuple[str, float]] = {}  # identity -> (token, monotonic time of acquire/renew)
         self._verified: dict[tuple[str, str], float] = {}  # (caller token, identity) -> monotonic time checked
         self._expires: dict[tuple[str, str], float] = {}
-        self._lock = threading.Lock()  # ensure/release run in worker threads
+        self._locks: dict[str, threading.Lock] = {}
+        self._lock = threading.Lock()  # protects lock creation, never a subprocess round trip
+
+    def _identity_lock(self, identity: str) -> threading.Lock:
+        with self._lock:
+            return self._locks.setdefault(identity, threading.Lock())
 
     def ensure(self, identity: str | None, holder: str | None = None) -> None:
         """Hold `identity`: acquire (as `holder`), or renew past half the TTL. Raises LeaseError if someone
         else holds it."""
         if not identity:
             return
-        with self._lock:
+        with self._identity_lock(identity):
             if not self.cmd:
                 if identity not in self._held:
                     log.warning("lease stub: not enforcing %s", identity)
@@ -142,7 +147,7 @@ class Leases:
             raise LeaseError(f"verified lease on {identity} expired before input")
 
     def release(self, identity: str) -> None:
-        with self._lock:
+        with self._identity_lock(identity):
             held = self._held.pop(identity, None)
             if held and held[0] and self.cmd:
                 self._run("release", held[0])
