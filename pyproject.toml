@@ -40,7 +40,7 @@ phonebridge-workspace = "teachable_worker.standalone:main"  # the desktop worksp
 Issues = "https://github.com/iantinney/phonebridge/issues"
 
 [dependency-groups]
-dev = ["pytest>=8", "numpy>=2.1"]
+dev = ["pytest>=8", "numpy>=2.1", "av==19.0.1"]  # tests/stream_helpers.py encodes test streams (on Linux pymobiledevice3 brings it; macOS needs it here)
 
 [build-system]
 requires = ["hatchling"]

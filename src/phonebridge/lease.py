@@ -66,7 +66,8 @@ class Leases:
             if held:
                 self.require_held(identity)
                 if self._run("renew", held[0], "--ttl", str(self.ttl)).returncode:
-                    self._held[identity] = (held[0], 0)
+                    # lost for good: never fresh or renewable on any clock (0 read as recent on a host up < TTL)
+                    self._held[identity] = (held[0], -math.inf)
                     raise LeaseError(f"lease {identity} lost; release and re-observe before acquiring again")
                 self._held[identity] = (held[0], now)
                 self.require_held(identity)

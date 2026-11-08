@@ -907,7 +907,7 @@ def test_implicit_expired_lease_is_reported_before_reacquiring(authhub):
     cmd, log = authhub
     leases = Leases(cmd, ttl=120)
     leases.ensure('device:iphone12')
-    leases._held['device:iphone12'] = ('tok123', 0)
+    leases._held['device:iphone12'] = ('tok123', time.monotonic() - leases.ttl - 1)  # older than the TTL on any clock
     with pytest.raises(LeaseError, match='expired'):
         leases.ensure('device:iphone12')
     assert authhub_calls(log) == ['acquire']
@@ -932,6 +932,39 @@ def test_failed_renewal_never_silently_acquires_a_successor(authhub, monkeypatch
     with pytest.raises(LeaseError, match="expired"):
         leases.ensure("device:iphone12")
     assert calls == ["renew"]
+    assert authhub_calls(log) == ["acquire"]
+
+
+def test_a_lost_lease_stays_lost_on_a_freshly_booted_host(tmp_path, authhub, monkeypatch):
+    """GitHub CI (a runner up for seconds): a failed renewal marked the lease (token, 0), which on a monotonic clock
+    under the TTL still read as live, so the next input renewed the lost lease again and, when that went through,
+    tapped. A lost lease stays lost whatever the clock reads: refused, no second renew, no acquire, no input."""
+    import subprocess
+    import types
+
+    from phonebridge import lease as lease_mod
+
+    clock = [5.0]  # seconds since boot
+    monkeypatch.setattr(lease_mod, "time", types.SimpleNamespace(monotonic=lambda: clock[0], time=time.time,
+                                                                 sleep=time.sleep))
+    cmd, log = authhub
+    b = Bridge(FakeBackend(), config(cmd), log_path=tmp_path / "calls.jsonl")
+    asyncio.run(b.tap("iphone12", 1, 2))  # acquired at t=5 s
+    real_run, renews = b.leases._run, []
+
+    def run(verb, *args):
+        if verb == "renew":  # lost once; the service would renew the same token if asked again
+            renews.append(verb)
+            return subprocess.CompletedProcess([], 1 if len(renews) == 1 else 0, "", "lease lost")
+        return real_run(verb, *args)
+    monkeypatch.setattr(b.leases, "_run", run)
+    clock[0] = 70.0  # due for renewal, still under the TTL since boot
+    with pytest.raises(LeaseError, match="lost"):
+        asyncio.run(b.tap("iphone12", 3, 4))
+    clock[0] = 71.0
+    with pytest.raises(LeaseError, match="expired"):
+        asyncio.run(b.tap("iphone12", 5, 6))
+    assert [c[2:] for c in b.backend.calls if c[0] == "tap"] == [(1, 2)] and renews == ["renew"]
     assert authhub_calls(log) == ["acquire"]
 
 
