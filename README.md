@@ -1,9 +1,13 @@
 # Phonebridge
 
-**A teachable agent workspace for your real iPhone.** Watch the phone live on your Mac, start a task, follow each step
-with the screen it acted on, and stop it at any point. Teach it a job from one run, then hand it new inputs. Agents
-such as Claude Code and Codex can drive the same phone through Phonebridge's MCP server. It works over USB, with no
-jailbreak and no app on the phone.
+**Give your phone a job.** Phonebridge is an open-source agent workspace for your real iPhone. Watch the phone live
+on your Mac, follow each step with the screen it acted on, and stop or take over at any point. Agents such as Claude
+Code and Codex can drive the same phone through Phonebridge's MCP server. It works over USB, with no jailbreak and
+no app on the phone.
+
+We're building toward describing a result once and getting finished work back. The alpha's demonstrated scope is
+below. **[Bring one real phone chore](docs/partners/)** to help choose what comes next: an uncut creator or early-user
+attempt, with a reusable job if it works.
 
 **Teach once, run on a new input.** A workflow learned from an agent-run `@natgeo` profile check was exported, imported
 unchanged into a fresh install of this release, and run on `@apple` on a real iPhone 12: 88 seconds, 9 inputs (6

@@ -1,0 +1,53 @@
+name: Bring one phone chore
+description: Suggest a real task for a Phonebridge creator or early-user experiment.
+title: "Phone chore: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help us build toward describing a job and getting the work back. This is an early experiment, not a promise that your task already works.
+
+        **This issue is public.** Do not include passwords, tokens, screenshots, message contents, phone numbers, account identifiers or other people's personal information. Describe the task using fictional examples. We will agree on scope and privacy before any live attempt.
+  - type: textarea
+    id: outcome
+    attributes:
+      label: What would you like your phone to get done?
+      description: Describe the result and how you would know it was correct. Use fictional names and data.
+      placeholder: "Turn a short packing list into reminders I can check off."
+    validations:
+      required: true
+  - type: textarea
+    id: manual
+    attributes:
+      label: How do you do it now?
+      description: Which apps, how often, and roughly how much time? Is there a Shortcut or integration that almost works?
+    validations:
+      required: true
+  - type: dropdown
+    id: setup
+    attributes:
+      label: Does your setup fit the current alpha?
+      description: The current release needs an Apple-silicon Mac on macOS 26 and a USB-connected iPhone on iOS 27+, with Developer Mode and UI Automation enabled.
+      options:
+        - "Yes"
+        - "Not sure"
+        - "No — sharing an idea for later"
+    validations:
+      required: true
+  - type: dropdown
+    id: participation
+    attributes:
+      label: What would you like to try?
+      options:
+        - "An early-user attempt on my own device"
+        - "A creator co-demo with editorial independence"
+        - "Just contributing a task idea"
+    validations:
+      required: true
+  - type: checkboxes
+    id: public
+    attributes:
+      label: Before submitting
+      options:
+        - label: "I have kept this public issue free of private data."
+          required: true
