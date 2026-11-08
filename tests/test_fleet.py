@@ -307,3 +307,22 @@ def test_device_alias_cannot_switch_physical_phones_until_restart(tmp_path):
         with pytest.raises(ValueError, match="restart the bridge"):
             _ = b.config
     assert b.backend.calls == []
+
+
+def test_two_configs_cannot_reserve_the_same_physical_phone_under_different_spellings(tmp_path, monkeypatch):
+    first = fleet(tmp_path, monkeypatch)
+    udid = first.config.resolve("phone1").udid
+    second = Bridge(FakeBackend(), Config(devices={"other": Device("other", udid.replace("-", "").lower(), "device:other")}),
+                    log_path=tmp_path / "second.jsonl")
+
+    async def run():
+        try:
+            await first.reserve("phone1", "first")
+            with pytest.raises(LeaseError, match="another process reserved"):
+                await second.reserve("other", "second")
+            await first.release_reservation("phone1", "first")
+            await second.reserve("other", "second")
+        finally:
+            await first.close()
+            await second.close()
+    asyncio.run(run())

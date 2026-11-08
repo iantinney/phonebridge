@@ -269,7 +269,7 @@ class Bridge:
                 raise LeaseError(f"busy: controller {held['owner']} reserved {device}")
             return
         RESERVATIONS.mkdir(mode=0o700, parents=True, exist_ok=True)
-        path = RESERVATIONS / (hashlib.sha256(udid.encode()).hexdigest() + ".lock")
+        path = RESERVATIONS / (hashlib.sha256(udid_key(udid).encode()).hexdigest() + ".lock")
         handle = path.open("a")
         try:
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
