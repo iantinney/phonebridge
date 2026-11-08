@@ -6,8 +6,7 @@ iPhones concurrently** over USB, with no jailbreak or app installed on the phone
 clients can use it; the desktop workspace shows the live phone and the evidence behind each task.
 
 **[Seven-phone setup and architecture](docs/multi-iphone.md)** ·
-**[Real-phone demonstration](docs/demo/taught-profile-check/)** ·
-**[Development history](docs/development-history.md)**
+**[Real-phone demonstration](docs/demo/taught-profile-check/)**
 
 Seven-device concurrency and isolation are tested in software with simulated phones. Native validation currently
 covers one iPhone 12, not a seven-phone hardware rig. Physical devices preserve their own iOS and signed-in app
